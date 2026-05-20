@@ -274,8 +274,11 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
     </div>
     <div class="header-right">
       <div class="badge-live"><span class="dot-live"></span><span id="date-today-lbl">—</span></div>
-      <label class="btn-import">
-        📥 Importer CSV
+      <button class="btn-import" id="btn-sync" onclick="syncFromScript()">
+        🔄 Synchroniser
+      </button>
+      <label class="btn-import" style="margin-top:4px;opacity:.6;font-size:10px">
+        📥 CSV (secours)
         <input type="file" accept=".csv" onchange="importCSV(this)">
       </label>
     </div>
@@ -844,10 +847,14 @@ function convertToClient(){
   var p=prospects.find(function(x){return x.id===convertingId;}); if(!p) return;
   var d=document.getElementById('f-date-cmd').value;
   if(!d){ alert('La date de 1ère commande est obligatoire.'); return; }
+  var montant = parseFloat(document.getElementById('f-montant').value)||0;
+  var note    = document.getElementById('f-note-conversion').value;
   p.statut='Client';
   p.date_cmd=d;
-  p.montant_cmd=parseFloat(document.getElementById('f-montant').value)||0;
-  p.note_conversion=document.getElementById('f-note-conversion').value;
+  p.montant_cmd=montant;
+  p.note_conversion=note;
+  // Pousser vers la Google Sheet
+  pushConvertToScript(convertingId, d, montant, note);
   closeModal('modal-client');
   renderAll();
   // Flash confirmation
@@ -870,7 +877,81 @@ function goTab(name,btn){
   if(name==='form-guide') renderFormGuide();
 }
 
-// ── IMPORT CSV ──────────────────────────────────────────────
+// ── APPS SCRIPT — SYNCHRONISATION ───────────────────────────
+// ⚙️ Collez ici l'URL de votre Apps Script déployé
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz9e2LZYnm4JUWwjMr88yZ5u_QJyvx5JdHHTiDnKIgmrflecfXPtDzthd5y48FKG8rHkg/exec';
+
+function syncFromScript(silent){
+  var btn = document.getElementById('btn-sync');
+  if(btn){ btn.textContent = '⏳ Sync…'; btn.disabled = true; }
+
+  fetch(SCRIPT_URL + '?action=getAll')
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res.success){
+        // Fusionner : conserver les données locales (consignes, conversions)
+        // saisies depuis le dashboard, mettre à jour le reste depuis la Sheet
+        res.prospects.forEach(function(p){
+          var existing = prospects.findIndex(function(x){ return x.id===p.id; });
+          if(existing >= 0){
+            // Conserver les champs manager saisis localement si la Sheet est vide
+            if(!p.consigne_manager) p.consigne_manager = prospects[existing].consigne_manager||'';
+            if(!p.date_cmd)         p.date_cmd         = prospects[existing].date_cmd||'';
+            if(!p.montant_cmd)      p.montant_cmd      = prospects[existing].montant_cmd||0;
+            if(!p.note_conversion)  p.note_conversion  = prospects[existing].note_conversion||'';
+            prospects[existing] = p;
+          } else {
+            prospects.push(p);
+          }
+        });
+        renderAll();
+        var now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        if(btn){ btn.textContent = '✅ ' + now; btn.disabled = false; }
+        if(!silent) showSyncBadge(res.prospects.length);
+      } else {
+        throw new Error(res.error || 'Erreur inconnue');
+      }
+    })
+    .catch(function(err){
+      if(btn){ btn.textContent = '❌ Erreur'; btn.disabled = false; }
+      setTimeout(function(){ if(btn) btn.textContent = '🔄 Synchroniser'; }, 3000);
+      if(!silent) console.warn('Sync échouée :', err.message);
+    });
+}
+
+function showSyncBadge(count){
+  var b = document.getElementById('date-today-lbl');
+  if(!b) return;
+  var orig = b.textContent;
+  b.textContent = '✅ ' + count + ' prospects synchronisés';
+  setTimeout(function(){ b.textContent = orig; }, 3000);
+}
+
+// Envoyer une conversion Client vers la Sheet
+function pushConvertToScript(id, date_cmd, montant, note){
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf('VOTRE_URL') >= 0) return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      action: 'convertClient',
+      id: id, date_cmd: date_cmd,
+      montant: montant, note: note
+    })
+  }).catch(function(e){ console.warn('Push client échoué :', e); });
+}
+
+// Envoyer une consigne manager vers la Sheet
+function pushConsigneToScript(id, consigne){
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf('VOTRE_URL') >= 0) return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action:'setConsigne', id:id, consigne:consigne})
+  }).catch(function(e){ console.warn('Push consigne échoué :', e); });
+}
+
+// ── IMPORT CSV (secours si pas de connexion) ─────────────────
 function importCSV(input){
   var file=input.files[0]; if(!file) return;
   var reader=new FileReader();
@@ -981,7 +1062,15 @@ function unlockDashboard() {
 function launchApp(){
   document.getElementById('date-today-lbl').textContent=
     new Date(TODAY).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
-  renderAll();
+  // Sync automatique au lancement (silencieuse)
+  if(SCRIPT_URL && SCRIPT_URL.indexOf('VOTRE_URL') < 0){
+    syncFromScript(true);
+    // Resync automatique toutes les 5 minutes
+    setInterval(function(){ syncFromScript(true); }, 5 * 60 * 1000);
+  } else {
+    // Pas de script configuré : afficher les données locales
+    renderAll();
+  }
   document.querySelectorAll('.modal-overlay').forEach(function(ov){
     ov.addEventListener('click',function(e){
       if(e.target===ov) ov.classList.remove('open');
