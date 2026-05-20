@@ -358,7 +358,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 // ══════════════════════════════════════════════════════════════
 var CONFIG = {
   commercial: 'Mathieu',
-  scriptUrl:  'https://script.google.com/macros/s/AKfycbz9e2LZYnm4JUWwjMr88yZ5u_QJyvx5JdHHTiDnKIgmrflecfXPtDzthd5y48FKG8rHkg/exec',
+  scriptUrl:  'https://script.google.com/macros/s/AKfycbyp6ApJkebzDao5r_T364RxKc6ZtDBJoDEK2by9PIzfp5iG6UUhwTWfiexKP6TOV--mXw/exec',
   avatars:    {Claire:'CL', Mathieu:'MA', 'Maeva':'MV'},
   colors:     {Claire:'#C8000F', Mathieu:'#4f8ef7', 'Maeva':'#a78bfa'},
   // ── CODES PIN (4 chiffres) ──────────────────────────────
@@ -389,11 +389,14 @@ function apiGet(params) {
 }
 
 function apiPost(data) {
-  return fetch(CONFIG.scriptUrl, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data),
-  }).then(function(r){ return r.json(); });
+  // Apps Script CORS fix : encoder les données en query string via GET
+  var params = Object.keys(data).map(function(k){
+    return encodeURIComponent(k) + '=' + encodeURIComponent(
+      typeof data[k] === 'object' ? JSON.stringify(data[k]) : String(data[k])
+    );
+  }).join('&');
+  return fetch(CONFIG.scriptUrl + '?' + params)
+    .then(function(r){ return r.json(); });
 }
 
 // ── INIT ──────────────────────────────────────────────────────
