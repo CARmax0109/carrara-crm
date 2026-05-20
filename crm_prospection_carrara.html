@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>CRM Prospection — Carrara</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#242d3e;
+  --border:rgba(255,255,255,0.07);--text:#f0f2f7;--muted:#8892a4;
+  --red:#C8000F;--blue:#4f8ef7;--green:#34d399;--amber:#f59e0b;
+  --purple:#a78bfa;--danger:#f87171;--gray:#6b7280;--teal:#22d3ee;
+  --radius:14px;--pad:16px;
+}
+@media(min-width:600px){:root{--pad:32px}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.6;min-height:100vh;-webkit-text-size-adjust:100%}
+
+/* ── HEADER ── */
+.header{padding:20px var(--pad) 0;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:0}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.header-logo{height:40px;width:auto}
+.header-sub{color:var(--muted);font-size:11px;margin-top:3px}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.badge-live{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--bg3);color:var(--muted)}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-import{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid rgba(79,142,247,0.4);background:rgba(79,142,247,0.08);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-import:hover{background:rgba(79,142,247,0.15);border-color:var(--blue)}
+.btn-import input{display:none}
+
+/* ── TABS ── */
+.tabs-bar{display:flex;gap:4px;padding:14px var(--pad) 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:7px 15px;border-radius:99px;border:1px solid transparent;background:none;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;font-family:inherit;white-space:nowrap;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.tab-btn:hover{color:var(--text);background:var(--bg3)}
+.tab-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── MAIN ── */
+.main{padding:14px var(--pad) 56px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+@media(min-width:480px){.kpi-row{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:860px){.kpi-row{grid-template-columns:repeat(5,1fr)}}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi.red::before{background:var(--red)}
+.kpi.green::before{background:var(--green)}
+.kpi.amber::before{background:var(--amber)}
+.kpi.blue::before{background:var(--blue)}
+.kpi.purple::before{background:var(--purple)}
+.kpi.teal::before{background:var(--teal)}
+.kpi.danger::before{background:var(--danger)}
+.kpi-lbl{font-size:9px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;line-height:1.3}
+.kpi-val{font-size:clamp(20px,5vw,28px);font-weight:700;letter-spacing:-0.5px;line-height:1}
+.kpi-sub{font-size:10px;margin-top:5px;color:var(--muted)}
+.kpi-sub.up{color:var(--green)}
+.kpi-sub.down{color:var(--danger)}
+.kpi-sub.warn{color:var(--amber)}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.card-title{font-size:12px;font-weight:600;color:var(--text)}
+.card-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
+@media(min-width:660px){.grid2{grid-template-columns:1fr 1fr}}
+
+/* ── PIPELINE FUNNEL ── */
+.funnel{display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.funnel-step{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);transition:all .2s;cursor:default}
+.funnel-step:hover{border-color:rgba(255,255,255,0.15)}
+.funnel-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.funnel-label{flex:1;font-size:11px;font-weight:500;color:var(--text)}
+.funnel-count{font-size:15px;font-weight:700;min-width:28px;text-align:right}
+.funnel-bar-wrap{flex:2;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* ── RELANCES URGENTES ── */
+.alert-list{display:flex;flex-direction:column;gap:6px}
+.alert-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3)}
+.alert-item.retard{border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.06)}
+.alert-item.today{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06)}
+.alert-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;flex-shrink:0;text-transform:uppercase;letter-spacing:.05em}
+.alert-badge.retard{background:rgba(248,113,113,0.2);color:var(--danger)}
+.alert-badge.today{background:rgba(245,158,11,0.2);color:var(--amber)}
+.alert-name{font-size:12px;font-weight:600;color:var(--text)}
+.alert-detail{font-size:10px;color:var(--muted);margin-top:1px}
+.alert-commercial{font-size:10px;font-weight:500;margin-left:auto;flex-shrink:0;padding:2px 8px;border-radius:99px;background:var(--bg4)}
+
+/* ── TABLE PROSPECTS ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:680px}
+thead th{padding:8px 10px;text-align:left;color:var(--muted);font-weight:500;font-size:9px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:hover td{background:rgba(255,255,255,0.02)}
+tbody tr.client-row td{background:rgba(52,211,153,0.04)}
+
+/* ── STATUT BADGES ── */
+.statut{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.statut.contacter{background:rgba(79,142,247,0.15);color:#7ab3ff;border:1px solid rgba(79,142,247,0.25)}
+.statut.encours{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.25)}
+.statut.rdv{background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.25)}
+.statut.proposition{background:rgba(34,211,238,0.15);color:#67e8f9;border:1px solid rgba(34,211,238,0.25)}
+.statut.client{background:rgba(52,211,153,0.15);color:#6ee7b7;border:1px solid rgba(52,211,153,0.25)}
+.statut.sanssuite{background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.25)}
+
+/* ── COMMERCIAL TAG ── */
+.com-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:600}
+.com-tag.claire{background:rgba(200,0,15,0.15);color:#f87171}
+.com-tag.mathieu{background:rgba(79,142,247,0.15);color:#7ab3ff}
+.com-tag.maeva{background:rgba(167,139,250,0.15);color:#c4b5fd}
+
+/* ── VALIDATE BTN ── */
+.btn-validate{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;border:1px solid rgba(52,211,153,0.35);background:rgba(52,211,153,0.08);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.btn-validate:hover{background:rgba(52,211,153,0.18)}
+.btn-consigne{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:7px;border:1px solid rgba(200,0,15,0.3);background:rgba(200,0,15,0.07);color:#f87171;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-consigne:hover{background:rgba(200,0,15,0.15)}
+
+/* ── SOURCE BARS ── */
+.source-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.source-lbl{font-size:11px;color:var(--text);min-width:110px}
+.source-bar-bg{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.source-bar{height:100%;border-radius:3px;background:var(--red);transition:width .6s ease}
+.source-count{font-size:11px;font-weight:600;min-width:20px;text-align:right}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:18px}
+.modal-field{margin-bottom:14px}
+.modal-field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px}
+.modal-field input,.modal-field select,.modal-field textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;transition:border-color .2s}
+.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--red)}
+.modal-field textarea{resize:vertical;min-height:70px}
+.modal-field select option{background:var(--bg3)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.btn-cancel{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit}
+.btn-save{padding:8px 18px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-save-green{padding:8px 18px;border-radius:8px;border:none;background:var(--green);color:#0f1117;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* ── FORM STRUCTURE ── */
+.form-section{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.form-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:12px}
+.form-grid{display:grid;gap:10px}
+@media(min-width:480px){.form-grid.cols2{grid-template-columns:1fr 1fr}}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:12px}
+.sep-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px}
+.date-warn{color:var(--danger);font-size:10px}
+.date-today{color:var(--amber);font-size:10px}
+.date-ok{color:var(--muted);font-size:10px}
+.actions-cell{display:flex;gap:5px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- ═══ ÉCRAN PIN MANAGER ═══ -->
+<div id="pin-screen" style="display:flex;position:fixed;inset:0;z-index:999;background:#0f1117;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center">
+  <div style="width:72px;height:72px;background:#C8000F;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:24px">&#x1F512;</div>
+  <div style="font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;color:#f0f2f7">Dashboard Manager</div>
+  <div style="font-size:13px;color:#8892a4;margin-bottom:36px">Accès Maxence — saisissez votre PIN</div>
+  <div style="display:flex;gap:14px;margin-bottom:28px" id="pin-dots">
+    <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #8892a4;transition:all .15s"></div>
+    <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #8892a4;transition:all .15s"></div>
+    <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #8892a4;transition:all .15s"></div>
+    <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #8892a4;transition:all .15s"></div>
+  </div>
+  <div id="pin-error" style="height:22px;color:#f87171;font-size:13px;margin-bottom:12px;visibility:hidden">Code incorrect — réessayez</div>
+  <div style="display:grid;grid-template-columns:repeat(3,80px);gap:10px;max-width:280px">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <div></div>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key" style="font-size:20px;background:rgba(255,255,255,0.04);border-color:transparent" onclick="pinDelete()">&#x232B;</button>
+  </div>
+  <div style="margin-top:32px;font-size:11px;color:#8892a4;max-width:260px;line-height:1.6">Session active 8h. En cas de perte du PIN, modifiez la variable <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;font-family:monospace">MANAGER_PIN</code> dans le code.</div>
+</div>
+<style>
+.pin-key{width:80px;height:80px;border-radius:50%;border:1px solid rgba(255,255,255,0.08);background:#161b27;color:#f0f2f7;font-size:24px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .1s,transform .1s;-webkit-tap-highlight-color:transparent}
+.pin-key:active,.pin-key:hover{background:#1e2535;transform:scale(.93)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+</style>
+
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-prospect">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Nouveau prospect</div>
+    <div class="modal-sub" id="modal-sub">Saisir les informations du prospect</div>
+    <div class="form-section">
+      <div class="form-section-title">Identification</div>
+      <div class="form-grid cols2">
+        <div class="modal-field"><label>Commercial *</label>
+          <select id="f-commercial"><option value="">— Choisir —</option><option>Claire</option><option>Mathieu</option><option>Maëva</option></select></div>
+        <div class="modal-field"><label>Entreprise *</label><input type="text" id="f-entreprise" placeholder="Nom de l'enseigne"></div>
+        <div class="modal-field"><label>Ville *</label><input type="text" id="f-ville" placeholder="Ville"></div>
+        <div class="modal-field"><label>Département</label><input type="text" id="f-dept" placeholder="Ex: 38"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Prospection</div>
+      <div class="form-grid cols2">
+        <div class="modal-field"><label>Source *</label>
+          <select id="f-source"><option value="">— Choisir —</option><option>Terrain</option><option>Recommandation</option><option>Réseau</option><option>Salon</option><option>Appel entrant</option></select></div>
+        <div class="modal-field"><label>Statut initial</label>
+          <select id="f-statut">
+            <option value="À contacter">À contacter</option>
+            <option value="En cours">En cours</option>
+            <option value="RDV planifié">RDV planifié</option>
+            <option value="Proposition envoyée">Proposition envoyée</option>
+          </select></div>
+        <div class="modal-field"><label>Prochaine relance</label><input type="date" id="f-relance"></div>
+        <div class="modal-field"><label>Nb d'actions menées</label><input type="number" id="f-actions" value="1" min="0"></div>
+      </div>
+      <div class="modal-field"><label>Dernière action / commentaire</label>
+        <textarea id="f-commentaire" placeholder="Décrivez l'état du contact, la dernière visite…"></textarea></div>
+      <div class="modal-field"><label>Étape suivante</label>
+        <input type="text" id="f-etape" placeholder="Ex: Envoyer échantillon + mise en place Cirrus"></div>
+    </div>
+    <div class="form-section" id="manager-section">
+      <div class="form-section-title">Espace manager (Maxence)</div>
+      <div class="modal-field"><label>Consigne manager</label>
+        <textarea id="f-consigne" placeholder="Votre instruction pour le commercial…" style="min-height:50px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-prospect')">Annuler</button>
+      <button class="btn-save" onclick="saveProspect()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-title">✅ Valider le passage en Client</div>
+    <div class="modal-sub" id="modal-client-sub">Ce prospect a passé sa première commande</div>
+    <div class="form-section">
+      <div class="form-section-title">Confirmation de conversion</div>
+      <div class="form-grid cols2">
+        <div class="modal-field"><label>Date 1ère commande *</label><input type="date" id="f-date-cmd"></div>
+        <div class="modal-field"><label>Montant estimé (€ HT)</label><input type="number" id="f-montant" placeholder="0"></div>
+      </div>
+      <div class="modal-field"><label>Note de conversion</label>
+        <textarea id="f-note-conversion" placeholder="Contexte, produit commandé, circonstance…" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-client')">Annuler</button>
+      <button class="btn-save-green" onclick="convertToClient()">Confirmer → Client ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:-.5px">CRM Prospection</div>
+      <div class="header-sub">Suivi pipeline · Claire · Mathieu · Maëva</div>
+    </div>
+    <div class="header-right">
+      <div class="badge-live"><span class="dot-live"></span><span id="date-today-lbl">—</span></div>
+      <label class="btn-import">
+        📥 Importer CSV
+        <input type="file" accept=".csv" onchange="importCSV(this)">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="goTab('dashboard',this)">Dashboard</button>
+  <button class="tab-btn" onclick="goTab('pipeline',this)">Pipeline</button>
+  <button class="tab-btn" onclick="goTab('relances',this)">Relances</button>
+  <button class="tab-btn" onclick="goTab('prospects',this)">Tous les prospects</button>
+  <button class="tab-btn" onclick="goTab('clients',this)">Clients</button>
+  <button class="tab-btn" onclick="goTab('form-guide',this)">Guide Form</button>
+</div>
+
+<div class="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="pane-dashboard" class="tab-pane active">
+  <div class="kpi-row" id="kpi-dashboard"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Pipeline par statut</div><div class="card-sub">Prospects actifs uniquement</div></div></div>
+      <div id="funnel-global"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Activité par commercial</div><div class="card-sub">Prospects actifs / clients / sans suite</div></div></div>
+      <div id="commercial-summary"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div><div class="card-title">Sources de prospection</div><div class="card-sub">Origine des contacts</div></div>
+    </div>
+    <div id="sources-chart"></div>
+  </div>
+  <div class="card" id="card-relances-urgentes">
+    <div class="card-hd"><div><div class="card-title">Relances urgentes</div><div class="card-sub">En retard + aujourd'hui</div></div></div>
+    <div id="relances-urgentes-list"></div>
+  </div>
+</div>
+
+<!-- ═══ PIPELINE ═══ -->
+<div id="pane-pipeline" class="tab-pane">
+  <div class="kpi-row" id="kpi-pipeline"></div>
+  <div id="pipeline-columns"></div>
+</div>
+
+<!-- ═══ RELANCES ═══ -->
+<div id="pane-relances" class="tab-pane">
+  <div class="kpi-row" id="kpi-relances"></div>
+  <div id="relances-content"></div>
+</div>
+
+<!-- ═══ TOUS LES PROSPECTS ═══ -->
+<div id="pane-prospects" class="tab-pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <select id="filter-commercial" onchange="renderProspects()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:11px;font-family:inherit">
+        <option value="">Tous les commerciaux</option>
+        <option>Claire</option><option>Mathieu</option><option>Maëva</option>
+      </select>
+      <select id="filter-statut" onchange="renderProspects()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:11px;font-family:inherit">
+        <option value="">Tous les statuts</option>
+        <option>À contacter</option><option>En cours</option><option>RDV planifié</option><option>Proposition envoyée</option><option>Sans suite</option>
+      </select>
+    </div>
+    <button class="btn-validate" onclick="openNewProspect()" style="border-color:rgba(200,0,15,0.4);background:rgba(200,0,15,0.08);color:var(--red)">+ Nouveau prospect</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>ID</th><th>Commercial</th><th>Entreprise</th><th>Ville</th><th>Source</th>
+        <th>Statut</th><th>Dernière action</th><th>Prochaine relance</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="tb-prospects"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══ CLIENTS ═══ -->
+<div id="pane-clients" class="tab-pane">
+  <div class="kpi-row" id="kpi-clients"></div>
+  <div class="card">
+    <div class="card-hd"><div><div class="card-title">Prospects convertis en clients</div><div class="card-sub">Première commande validée par Maxence</div></div></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>ID</th><th>Commercial</th><th>Entreprise</th><th>Ville</th>
+        <th>Date conversion</th><th>Montant 1ère cmd</th><th>Note</th>
+      </tr></thead>
+      <tbody id="tb-clients"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ═══ GUIDE FORM ═══ -->
+<div id="pane-form-guide" class="tab-pane">
+  <div class="card">
+    <div class="card-hd"><div>
+      <div class="card-title">Google Form — Structure recommandée</div>
+      <div class="card-sub">Copiez cette structure dans votre Google Form existant</div>
+    </div></div>
+    <div id="form-guide-content"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-hd"><div>
+      <div class="card-title">Google Sheets — Structure colonnes recommandée</div>
+      <div class="card-sub">Pour chaque onglet commercial individuel</div>
+    </div></div>
+    <div id="sheets-guide-content"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+'use strict';
+
+// ── DONNÉES ──────────────────────────────────────────────────
+var prospects = [
+  {id:'PROS-0001',commercial:'Claire',entreprise:'Schmidt',ville:'Dijon',dept:'21',source:'Terrain',date_creation:'2026-01-15',derniere_action:'',prochaine_relance:'',commentaires:'Ras',etape_suivante:'Reprendre rendez-vous',consigne_manager:'ne rien faire',statut:'À contacter',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:1},
+  {id:'PROS-0002',commercial:'Claire',entreprise:'Duchemol',ville:'Lyon',dept:'69',source:'Recommandation',date_creation:'2026-02-03',derniere_action:'',prochaine_relance:'',commentaires:"Pas d'intérêt",etape_suivante:'Stop',consigne_manager:'',statut:'Sans suite',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:2},
+  {id:'PROS-0011',commercial:'Claire',entreprise:'Gaga',ville:'Gogo',dept:'69',source:'Terrain',date_creation:'2026-04-10',derniere_action:'Nouveau rendez fait',prochaine_relance:'2026-05-23',commentaires:'Très bon accueil',etape_suivante:'Envoyer échantillon + Cirrus',consigne_manager:'',statut:'RDV planifié',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:3},
+  {id:'PROS-0004',commercial:'Mathieu',entreprise:'Aviva Grenoble',ville:'Grenoble',dept:'38',source:'Recommandation',date_creation:'2026-01-20',derniere_action:'',prochaine_relance:'',commentaires:'À du potentiel',etape_suivante:'Reprendre RDV avec Eric',consigne_manager:'',statut:'Proposition envoyée',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:4},
+  {id:'PROS-0007',commercial:'Mathieu',entreprise:'Cuisinella',ville:'Grenoble',dept:'38',source:'Terrain',date_creation:'2026-02-14',derniere_action:"Pas pu y aller cette semaine",prochaine_relance:'',commentaires:'À relancer',etape_suivante:'',consigne_manager:'',statut:'En cours',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:1},
+  {id:'PROS-0009',commercial:'Mathieu',entreprise:'Schmidt',ville:'Saint-Égrève',dept:'38',source:'Recommandation',date_creation:'2026-03-05',derniere_action:'',prochaine_relance:'',commentaires:'',etape_suivante:'À contacter avant juillet',consigne_manager:'',statut:'À contacter',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:1},
+  {id:'PROS-0003',commercial:'Maëva',entreprise:'Dijon Cuisines',ville:'Dijon',dept:'21',source:'Recommandation',date_creation:'2026-01-28',derniere_action:'',prochaine_relance:'',commentaires:'Intéressé',etape_suivante:'Prise de RDV',consigne_manager:'',statut:'RDV planifié',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:2},
+  {id:'PROS-0005',commercial:'Maëva',entreprise:'Fnac',ville:'Bourg-en-Bresse',dept:'01',source:'Réseau',date_creation:'2026-03-12',derniere_action:'Bla bla',prochaine_relance:'2026-05-20',commentaires:'Client très sympa',etape_suivante:'À revoir',consigne_manager:'',statut:'RDV planifié',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:3},
+  {id:'PROS-0010',commercial:'Maëva',entreprise:'Joujou',ville:'Bourg-en-Bresse',dept:'01',source:'Terrain',date_creation:'2026-04-22',derniere_action:'Visite',prochaine_relance:'2026-05-23',commentaires:'Pas fou fou',etape_suivante:'Envoyer échantillon',consigne_manager:'',statut:'En cours',date_cmd:'',montant_cmd:0,note_conversion:'',nb_actions:2},
+];
+
+var TODAY = '2026-05-19';
+var editingId = null;
+var convertingId = null;
+
+// ── UTILS ──────────────────────────────────────────────────
+function today(){ return TODAY; }
+function fmtDate(d){ if(!d) return '—'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function fmtE(v){ return v?Math.round(v).toLocaleString('fr-FR')+'€':'—'; }
+function nextId(){
+  var nums = prospects.map(function(p){ return parseInt(p.id.replace('PROS-',''))||0; });
+  return 'PROS-'+ String(Math.max.apply(null,nums)+1).padStart(4,'0');
+}
+function dateClass(d){
+  if(!d) return '';
+  if(d < today()) return 'date-warn';
+  if(d === today()) return 'date-today';
+  return 'date-ok';
+}
+function statutClass(s){
+  var m={'À contacter':'contacter','En cours':'encours','RDV planifié':'rdv','Proposition envoyée':'proposition','Client':'client','Sans suite':'sanssuite'};
+  return m[s]||'contacter';
+}
+function comClass(c){ return c?c.toLowerCase().replace('ë','e').replace('é','e'):''; }
+function activeProspects(){ return prospects.filter(function(p){ return p.statut!=='Client'&&p.statut!=='Sans suite'; }); }
+function clients(){ return prospects.filter(function(p){ return p.statut==='Client'; }); }
+
+// ── KPI BUILDER ──────────────────────────────────────────────
+function buildKPI(id, cards){
+  var el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML=cards.map(function(c){
+    return '<div class="kpi '+c.color+'"><div class="kpi-lbl">'+c.lbl+'</div><div class="kpi-val">'+c.val+'</div><div class="kpi-sub '+c.cls+'">'+c.sub+'</div></div>';
+  }).join('');
+}
+
+// ── FUNNEL ──────────────────────────────────────────────────
+var STEPS = [
+  {key:'À contacter', label:'À contacter', color:'#4f8ef7'},
+  {key:'En cours',    label:'En cours',    color:'#f59e0b'},
+  {key:'RDV planifié',label:'RDV planifié',color:'#a78bfa'},
+  {key:'Proposition envoyée',label:'Proposition',color:'#22d3ee'},
+  {key:'Client',      label:'Client',      color:'#34d399'},
+  {key:'Sans suite',  label:'Sans suite',  color:'#6b7280'},
+];
+function buildFunnel(id){
+  var el=document.getElementById(id); if(!el) return;
+  var total=prospects.length||1;
+  var html='<div class="funnel">';
+  STEPS.forEach(function(s){
+    var cnt=prospects.filter(function(p){return p.statut===s.key;}).length;
+    var pct=Math.round(cnt/total*100);
+    html+='<div class="funnel-step">'
+      +'<div class="funnel-dot" style="background:'+s.color+'"></div>'
+      +'<div class="funnel-label">'+s.label+'</div>'
+      +'<div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+pct+'%;background:'+s.color+'"></div></div>'
+      +'<div class="funnel-count" style="color:'+s.color+'">'+cnt+'</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ── COMMERCIAL SUMMARY ──────────────────────────────────────
+function buildCommercialSummary(id){
+  var el=document.getElementById(id); if(!el) return;
+  var coms=['Claire','Mathieu','Maëva'];
+  var html='<div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">';
+  coms.forEach(function(c){
+    var actifs=prospects.filter(function(p){return p.commercial===c&&p.statut!=='Client'&&p.statut!=='Sans suite';}).length;
+    var cls=prospects.filter(function(p){return p.commercial===c&&p.statut==='Client';}).length;
+    var ss=prospects.filter(function(p){return p.commercial===c&&p.statut==='Sans suite';}).length;
+    var retard=prospects.filter(function(p){return p.commercial===c&&p.prochaine_relance&&p.prochaine_relance<today();}).length;
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">'
+      +'<span class="com-tag '+comClass(c)+'">'+c+'</span>'
+      +'<span style="font-size:11px;color:var(--text)"><b>'+actifs+'</b> actifs</span>'
+      +'<span style="font-size:11px;color:var(--green)">'+cls+' clients</span>'
+      +'<span style="font-size:11px;color:var(--muted)">'+ss+' sans suite</span>'
+      +(retard?'<span style="font-size:10px;color:var(--danger);margin-left:auto">⚠ '+retard+' retard</span>':'')
+      +'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ── SOURCES ──────────────────────────────────────────────────
+function buildSources(id){
+  var el=document.getElementById(id); if(!el) return;
+  var srcs={};
+  prospects.forEach(function(p){ srcs[p.source]=(srcs[p.source]||0)+1; });
+  var max=Math.max.apply(null,Object.values(srcs))||1;
+  var sorted=Object.keys(srcs).sort(function(a,b){return srcs[b]-srcs[a];});
+  var html='<div style="padding-top:4px">';
+  sorted.forEach(function(s){
+    var pct=Math.round(srcs[s]/max*100);
+    html+='<div class="source-row"><div class="source-lbl">'+s+'</div>'
+      +'<div class="source-bar-bg"><div class="source-bar" style="width:'+pct+'%"></div></div>'
+      +'<div class="source-count">'+srcs[s]+'</div></div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ── RELANCES URGENTES ──────────────────────────────────────
+function buildRelancesUrgentes(id){
+  var el=document.getElementById(id); if(!el) return;
+  var urgent=prospects.filter(function(p){
+    return p.prochaine_relance && p.prochaine_relance<=today() && p.statut!=='Client' && p.statut!=='Sans suite';
+  }).sort(function(a,b){return a.prochaine_relance.localeCompare(b.prochaine_relance);});
+  if(!urgent.length){ el.innerHTML='<div class="empty-state">Aucune relance urgente 🎉</div>'; return; }
+  var html='<div class="alert-list">';
+  urgent.forEach(function(p){
+    var isRetard=p.prochaine_relance<today();
+    html+='<div class="alert-item '+(isRetard?'retard':'today')+'">'
+      +'<span class="alert-badge '+(isRetard?'retard':'today')+'">'+(isRetard?'En retard':'Aujourd\'hui')+'</span>'
+      +'<div><div class="alert-name">'+p.entreprise+'</div>'
+      +'<div class="alert-detail">'+fmtDate(p.prochaine_relance)+' · '+p.etape_suivante+'</div></div>'
+      +'<span class="alert-commercial">'+p.commercial+'</span>'
+      +'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+function renderDashboard(){
+  var actifs=activeProspects().length;
+  var cls=clients().length;
+  var total=prospects.length;
+  var retard=prospects.filter(function(p){return p.prochaine_relance&&p.prochaine_relance<today()&&p.statut!=='Client'&&p.statut!=='Sans suite';}).length;
+  var ss=prospects.filter(function(p){return p.statut==='Sans suite';}).length;
+  var txConv=total?Math.round(cls/total*100):0;
+  buildKPI('kpi-dashboard',[
+    {color:'red',lbl:'Prospects actifs',val:actifs,sub:'Dans le pipeline',cls:'neutral'},
+    {color:'green',lbl:'Clients convertis',val:cls,sub:txConv+'% de taux conversion',cls:'up'},
+    {color:'amber',lbl:'Relances en retard',val:retard,sub:retard?'À traiter en priorité':'Tout est à jour',cls:retard?'down':'up'},
+    {color:'blue',lbl:'Total prospects',val:total,sub:'Depuis le début',cls:'neutral'},
+    {color:'purple',lbl:'Sans suite',val:ss,sub:'Abandonnés',cls:'neutral'},
+  ]);
+  buildFunnel('funnel-global');
+  buildCommercialSummary('commercial-summary');
+  buildSources('sources-chart');
+  buildRelancesUrgentes('relances-urgentes-list');
+}
+
+// ── PIPELINE ──────────────────────────────────────────────
+function renderPipeline(){
+  var actifSteps=STEPS.filter(function(s){return s.key!=='Sans suite'&&s.key!=='Client';});
+  var retard=prospects.filter(function(p){return p.prochaine_relance&&p.prochaine_relance<today()&&p.statut!=='Client'&&p.statut!=='Sans suite';}).length;
+  buildKPI('kpi-pipeline',[
+    {color:'red',lbl:'À contacter',val:prospects.filter(function(p){return p.statut==='À contacter';}).length,sub:'Nouveau contact',cls:'neutral'},
+    {color:'amber',lbl:'En cours',val:prospects.filter(function(p){return p.statut==='En cours';}).length,sub:'Suivi actif',cls:'neutral'},
+    {color:'purple',lbl:'RDV planifié',val:prospects.filter(function(p){return p.statut==='RDV planifié';}).length,sub:'Rendez-vous fixé',cls:'neutral'},
+    {color:'teal',lbl:'Proposition envoyée',val:prospects.filter(function(p){return p.statut==='Proposition envoyée';}).length,sub:'En attente retour',cls:'neutral'},
+    {color:'danger',lbl:'Relances en retard',val:retard,sub:'Action requise',cls:retard?'down':'up'},
+  ]);
+  var el=document.getElementById('pipeline-columns'); if(!el) return;
+  var html='';
+  actifSteps.forEach(function(s){
+    var list=prospects.filter(function(p){return p.statut===s.key;});
+    html+='<div class="card" style="margin-bottom:10px">'
+      +'<div class="card-hd"><div>'
+        +'<div class="card-title" style="display:flex;align-items:center;gap:8px">'
+          +'<span style="width:10px;height:10px;border-radius:50%;background:'+s.color+';display:inline-block;flex-shrink:0"></span>'
+          +s.label+'</div>'
+        +'<div class="card-sub">'+list.length+' prospect'+(list.length>1?'s':'')+'</div>'
+      +'</div></div>';
+    if(!list.length){ html+='<div class="empty-state" style="padding:16px">Aucun prospect dans cette étape</div>'; }
+    else{
+      html+='<div style="display:flex;flex-direction:column;gap:6px">';
+      list.forEach(function(p){
+        var isRetard=p.prochaine_relance&&p.prochaine_relance<today();
+        html+='<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)'+(isRetard?';border-color:rgba(248,113,113,0.3)':'')+'">'
+          +'<div style="flex:1">'
+            +'<div style="font-size:11px;font-weight:600">'+p.entreprise+' <span style="font-size:9px;color:var(--muted)">'+p.ville+'</span></div>'
+            +'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+p.etape_suivante+'</div>'
+          +'</div>'
+          +'<span class="com-tag '+comClass(p.commercial)+'">'+p.commercial+'</span>'
+          +(p.prochaine_relance?'<span class="'+dateClass(p.prochaine_relance)+'" style="font-size:10px">'+fmtDate(p.prochaine_relance)+'</span>':'')
+          +'<button class="btn-validate" style="border-color:rgba(52,211,153,0.35)" onclick="openConvert(\''+p.id+'\')">→ Client</button>'
+          +'</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// ── RELANCES ──────────────────────────────────────────────
+function renderRelances(){
+  var retard=prospects.filter(function(p){return p.prochaine_relance&&p.prochaine_relance<today()&&p.statut!=='Client'&&p.statut!=='Sans suite';});
+  var auj=prospects.filter(function(p){return p.prochaine_relance===today()&&p.statut!=='Client'&&p.statut!=='Sans suite';});
+  var j7=new Date(today()); j7.setDate(j7.getDate()+7);
+  var j7s=j7.toISOString().slice(0,10);
+  var semaine=prospects.filter(function(p){return p.prochaine_relance>today()&&p.prochaine_relance<=j7s&&p.statut!=='Client'&&p.statut!=='Sans suite';});
+  buildKPI('kpi-relances',[
+    {color:'danger',lbl:'En retard',val:retard.length,sub:'À traiter immédiatement',cls:retard.length?'down':'up'},
+    {color:'amber',lbl:"Aujourd'hui",val:auj.length,sub:'À faire aujourd\'hui',cls:auj.length?'warn':'neutral'},
+    {color:'blue',lbl:'Cette semaine',val:semaine.length,sub:'Dans les 7 prochains jours',cls:'neutral'},
+  ]);
+  var el=document.getElementById('relances-content'); if(!el) return;
+  var html='';
+  function section(title,list,cls){
+    if(!list.length) return '';
+    var r='<div class="sep-label">'+title+' ('+list.length+')</div><div class="alert-list" style="margin-bottom:14px">';
+    list.forEach(function(p){
+      r+='<div class="alert-item '+cls+'">'
+        +'<span class="alert-badge '+cls+'">'+fmtDate(p.prochaine_relance)+'</span>'
+        +'<div><div class="alert-name">'+p.entreprise+' · '+p.ville+'</div>'
+        +'<div class="alert-detail">'+p.etape_suivante+'</div>'
+        +(p.consigne_manager?'<div style="font-size:10px;color:#f87171;margin-top:2px">📌 '+p.consigne_manager+'</div>':'')
+        +'</div>'
+        +'<span class="alert-commercial">'+p.commercial+'</span>'
+        +'</div>';
+    });
+    return r+'</div>';
+  }
+  html+=section('En retard',retard,'retard');
+  html+=section("Aujourd'hui",auj,'today');
+  html+=section('Cette semaine',semaine,'');
+  if(!html) html='<div class="empty-state">Aucune relance prévue 🎉</div>';
+  el.innerHTML=html;
+}
+
+// ── TOUS LES PROSPECTS ──────────────────────────────────────
+function renderProspects(){
+  var fc=document.getElementById('filter-commercial').value;
+  var fs=document.getElementById('filter-statut').value;
+  var list=prospects.filter(function(p){
+    return p.statut!=='Client'&&(!fc||p.commercial===fc)&&(!fs||p.statut===fs);
+  });
+  var tb=document.getElementById('tb-prospects'); if(!tb) return;
+  if(!list.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Aucun prospect trouvé</td></tr>'; return; }
+  tb.innerHTML=list.map(function(p){
+    var dr=dateClass(p.prochaine_relance);
+    return '<tr>'
+      +'<td style="color:var(--muted);font-size:10px">'+p.id+'</td>'
+      +'<td><span class="com-tag '+comClass(p.commercial)+'">'+p.commercial+'</span></td>'
+      +'<td style="font-weight:600">'+p.entreprise+'</td>'
+      +'<td style="color:var(--muted)">'+p.ville+'</td>'
+      +'<td style="color:var(--muted)">'+p.source+'</td>'
+      +'<td><span class="statut '+statutClass(p.statut)+'">'+p.statut+'</span></td>'
+      +'<td style="color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.commentaires+'</td>'
+      +'<td><span class="'+dr+'">'+fmtDate(p.prochaine_relance)+'</span></td>'
+      +'<td><div class="actions-cell">'
+        +'<button class="btn-consigne" onclick="openEdit(\''+p.id+'\')">✏</button>'
+        +'<button class="btn-validate" onclick="openConvert(\''+p.id+'\')">→ Client</button>'
+        +'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── CLIENTS ──────────────────────────────────────────────
+function renderClients(){
+  var list=clients();
+  var total_cmd=list.reduce(function(s,p){return s+(p.montant_cmd||0);},0);
+  buildKPI('kpi-clients',[
+    {color:'green',lbl:'Clients actifs',val:list.length,sub:'Prospects convertis',cls:'up'},
+    {color:'amber',lbl:'Valeur 1ères cmds',val:total_cmd?Math.round(total_cmd).toLocaleString('fr-FR')+'€':'—',sub:'Total estimé',cls:'neutral'},
+    {color:'red',lbl:'Taux conversion',val:prospects.length?Math.round(list.length/prospects.length*100)+'%':'—',sub:'Sur total prospects',cls:'neutral'},
+  ]);
+  var tb=document.getElementById('tb-clients'); if(!tb) return;
+  if(!list.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">Aucun client converti pour le moment</td></tr>'; return; }
+  tb.innerHTML=list.map(function(p){
+    return '<tr class="client-row">'
+      +'<td style="color:var(--muted);font-size:10px">'+p.id+'</td>'
+      +'<td><span class="com-tag '+comClass(p.commercial)+'">'+p.commercial+'</span></td>'
+      +'<td style="font-weight:600">'+p.entreprise+'</td>'
+      +'<td style="color:var(--muted)">'+p.ville+'</td>'
+      +'<td><span style="color:var(--green)">'+fmtDate(p.date_cmd)+'</span></td>'
+      +'<td style="font-weight:600">'+fmtE(p.montant_cmd)+'</td>'
+      +'<td style="color:var(--muted);font-size:10px">'+p.note_conversion+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── GUIDE FORM ──────────────────────────────────────────────
+function renderFormGuide(){
+  var el=document.getElementById('form-guide-content'); if(!el) return;
+  var guide=[
+    {q:'Question 1 (obligatoire) — Choix branchement',type:'Choix multiple',opts:['🆕 Nouveau prospect','🔄 Suivi prospect existant'],note:'C\'est votre question de départ actuelle — gardez-la telle quelle.'},
+    {q:'━━ BRANCHE A : Nouveau prospect',type:'Section',opts:[],note:''},
+    {q:'Q2-A · Votre nom',type:'Liste déroulante',opts:['Claire','Mathieu','Maëva'],note:''},
+    {q:'Q3-A · Nom de l\'entreprise',type:'Réponse courte',opts:[],note:'Obligatoire'},
+    {q:'Q4-A · Ville',type:'Réponse courte',opts:[],note:''},
+    {q:'Q5-A · Département',type:'Réponse courte',opts:[],note:'Ex: 38, 69, 21…'},
+    {q:'Q6-A · Comment avez-vous trouvé ce prospect ?',type:'Choix multiple',opts:['Terrain (visite)','Recommandation','Réseau','Salon','Appel entrant'],note:''},
+    {q:'Q7-A · Premier contact — comment ça s\'est passé ?',type:'Paragraphe',opts:[],note:'Libre'},
+    {q:'Q8-A · Statut initial',type:'Liste déroulante',opts:['À contacter','En cours','RDV planifié','Proposition envoyée'],note:''},
+    {q:'Q9-A · Prochaine relance',type:'Date',opts:[],note:''},
+    {q:'━━ BRANCHE B : Suivi prospect existant',type:'Section',opts:[],note:''},
+    {q:'Q2-B · Votre nom',type:'Liste déroulante',opts:['Claire','Mathieu','Maëva'],note:''},
+    {q:'Q3-B · ID du prospect',type:'Réponse courte',opts:[],note:'Ex: PROS-0004 — visible dans votre sheet'},
+    {q:'Q4-B · Action menée',type:'Paragraphe',opts:[],note:'Décrivez ce que vous avez fait'},
+    {q:'Q5-B · Nouveau statut',type:'Liste déroulante',opts:['À contacter','En cours','RDV planifié','Proposition envoyée','Sans suite'],note:'Pas de "Client" — c\'est Maxence qui valide'},
+    {q:'Q6-B · Prochaine relance',type:'Date',opts:[],note:'Laisser vide si plus de relance prévue'},
+    {q:'Q7-B · Note ou commentaire',type:'Paragraphe',opts:[],note:''},
+  ];
+  var html='<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">';
+  guide.forEach(function(g){
+    if(g.type==='Section'){
+      html+='<div class="sep-label">'+g.q+'</div>';
+      return;
+    }
+    html+='<div style="padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">'
+        +'<div style="font-size:11px;font-weight:600;color:var(--text)">'+g.q+'</div>'
+        +'<span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--bg4);color:var(--blue)">'+g.type+'</span>'
+      +'</div>'
+      +(g.opts.length?'<div style="font-size:10px;color:var(--muted);margin-top:4px">Options : '+g.opts.join(' / ')+'</div>':'')
+      +(g.note?'<div style="font-size:10px;color:var(--amber);margin-top:3px">ℹ '+g.note+'</div>':'')
+      +'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+
+  var el2=document.getElementById('sheets-guide-content'); if(!el2) return;
+  var cols=[
+    {col:'A',name:'ID PROSPECTION',type:'Auto',note:'PROS-0001, PROS-0002…'},
+    {col:'B',name:'COMMERCIAL',type:'Texte',note:'Claire / Mathieu / Maëva'},
+    {col:'C',name:'ENTREPRISE',type:'Texte',note:''},
+    {col:'D',name:'VILLE',type:'Texte',note:''},
+    {col:'E',name:'DEPARTEMENT',type:'Texte',note:'38, 69, 21…'},
+    {col:'F',name:'SOURCE',type:'Liste',note:'Terrain / Recommandation / Réseau / Salon / Appel entrant'},
+    {col:'G',name:'DATE CREATION',type:'Date',note:'Rempli automatiquement par le Form'},
+    {col:'H',name:'DERNIERE ACTION',type:'Texte',note:'Rempli via Form — branche Suivi'},
+    {col:'I',name:'PROCHAINE RELANCE',type:'Date',note:''},
+    {col:'J',name:'COMMENTAIRES',type:'Texte',note:''},
+    {col:'K',name:'ETAPE SUIVANTE',type:'Texte',note:''},
+    {col:'L',name:'CONSIGNE MANAGER',type:'Texte',note:'Rempli par Maxence uniquement'},
+    {col:'M',name:'STATUT',type:'Liste',note:'À contacter / En cours / RDV planifié / Proposition envoyée / Sans suite'},
+    {col:'N',name:'DATE 1ERE COMMANDE',type:'Date',note:'⭐ Rempli par Maxence pour valider → Client'},
+    {col:'O',name:'MONTANT ESTIME',type:'Nombre',note:'€ HT première commande'},
+    {col:'P',name:'NOTE CONVERSION',type:'Texte',note:'Contexte de la conversion'},
+    {col:'Q',name:'NB ACTIONS',type:'Nombre',note:'Nb total d\'interactions'},
+  ];
+  var h2='<div class="table-wrap"><table style="min-width:400px"><thead><tr><th>Col.</th><th>Nom</th><th>Type</th><th>Note</th></tr></thead><tbody>';
+  cols.forEach(function(c){
+    var isKey=c.col==='N';
+    h2+='<tr style="'+(isKey?'background:rgba(52,211,153,0.05)':'')+'">'
+      +'<td style="font-weight:700;color:var(--muted)">'+c.col+'</td>'
+      +'<td style="font-weight:600'+(isKey?';color:var(--green)':'')+'">'+c.name+'</td>'
+      +'<td style="color:var(--blue);font-size:10px">'+c.type+'</td>'
+      +'<td style="color:var(--muted);font-size:10px">'+c.note+'</td>'
+      +'</tr>';
+  });
+  h2+='</tbody></table></div>';
+  el2.innerHTML=h2;
+}
+
+// ── MODALS ──────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+function openNewProspect(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Nouveau prospect';
+  document.getElementById('modal-sub').textContent='Saisir les informations';
+  ['f-commercial','f-entreprise','f-ville','f-dept','f-source','f-relance','f-commentaire','f-etape','f-consigne'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  document.getElementById('f-statut').value='À contacter';
+  document.getElementById('f-actions').value='1';
+  openModal('modal-prospect');
+}
+
+function openEdit(id){
+  var p=prospects.find(function(x){return x.id===id;}); if(!p) return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Modifier · '+p.entreprise;
+  document.getElementById('modal-sub').textContent=p.id+' · '+p.commercial;
+  document.getElementById('f-commercial').value=p.commercial;
+  document.getElementById('f-entreprise').value=p.entreprise;
+  document.getElementById('f-ville').value=p.ville;
+  document.getElementById('f-dept').value=p.dept||'';
+  document.getElementById('f-source').value=p.source;
+  document.getElementById('f-statut').value=p.statut;
+  document.getElementById('f-relance').value=p.prochaine_relance||'';
+  document.getElementById('f-commentaire').value=p.commentaires||'';
+  document.getElementById('f-etape').value=p.etape_suivante||'';
+  document.getElementById('f-consigne').value=p.consigne_manager||'';
+  document.getElementById('f-actions').value=p.nb_actions||1;
+  openModal('modal-prospect');
+}
+
+function openConvert(id){
+  var p=prospects.find(function(x){return x.id===id;}); if(!p) return;
+  convertingId=id;
+  document.getElementById('modal-client-sub').textContent=p.entreprise+' · '+p.commercial+' · '+p.ville;
+  document.getElementById('f-date-cmd').value=today();
+  document.getElementById('f-montant').value='';
+  document.getElementById('f-note-conversion').value='';
+  openModal('modal-client');
+}
+
+function saveProspect(){
+  var commercial=document.getElementById('f-commercial').value;
+  var entreprise=document.getElementById('f-entreprise').value;
+  if(!commercial||!entreprise){ alert('Commercial et Entreprise sont obligatoires.'); return; }
+  if(editingId){
+    var p=prospects.find(function(x){return x.id===editingId;}); if(!p) return;
+    p.commercial=commercial; p.entreprise=entreprise;
+    p.ville=document.getElementById('f-ville').value;
+    p.dept=document.getElementById('f-dept').value;
+    p.source=document.getElementById('f-source').value;
+    p.statut=document.getElementById('f-statut').value;
+    p.prochaine_relance=document.getElementById('f-relance').value;
+    p.commentaires=document.getElementById('f-commentaire').value;
+    p.etape_suivante=document.getElementById('f-etape').value;
+    p.consigne_manager=document.getElementById('f-consigne').value;
+    p.nb_actions=parseInt(document.getElementById('f-actions').value)||1;
+  } else {
+    prospects.push({
+      id:nextId(), commercial:commercial, entreprise:entreprise,
+      ville:document.getElementById('f-ville').value,
+      dept:document.getElementById('f-dept').value,
+      source:document.getElementById('f-source').value||'Terrain',
+      date_creation:today(),
+      derniere_action:'',
+      prochaine_relance:document.getElementById('f-relance').value,
+      commentaires:document.getElementById('f-commentaire').value,
+      etape_suivante:document.getElementById('f-etape').value,
+      consigne_manager:document.getElementById('f-consigne').value,
+      statut:document.getElementById('f-statut').value||'À contacter',
+      date_cmd:'',montant_cmd:0,note_conversion:'',
+      nb_actions:parseInt(document.getElementById('f-actions').value)||1,
+    });
+  }
+  closeModal('modal-prospect');
+  renderAll();
+}
+
+function convertToClient(){
+  var p=prospects.find(function(x){return x.id===convertingId;}); if(!p) return;
+  var d=document.getElementById('f-date-cmd').value;
+  if(!d){ alert('La date de 1ère commande est obligatoire.'); return; }
+  p.statut='Client';
+  p.date_cmd=d;
+  p.montant_cmd=parseFloat(document.getElementById('f-montant').value)||0;
+  p.note_conversion=document.getElementById('f-note-conversion').value;
+  closeModal('modal-client');
+  renderAll();
+  // Flash confirmation
+  setTimeout(function(){
+    var tab=document.querySelector('[onclick="goTab(\'clients\',this)"]');
+    if(tab){ tab.style.boxShadow='0 0 0 3px rgba(52,211,153,0.4)'; setTimeout(function(){tab.style.boxShadow='';},1500); }
+  },100);
+}
+
+// ── NAVIGATION ──────────────────────────────────────────────
+function goTab(name,btn){
+  document.querySelectorAll('.tab-pane').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(el){el.classList.remove('active');});
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='pipeline') renderPipeline();
+  if(name==='relances') renderRelances();
+  if(name==='prospects') renderProspects();
+  if(name==='clients') renderClients();
+  if(name==='form-guide') renderFormGuide();
+}
+
+// ── IMPORT CSV ──────────────────────────────────────────────
+function importCSV(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n');
+    var headers=lines[0].split(',').map(function(h){return h.trim().toLowerCase().replace(/ /g,'_');});
+    var imported=0;
+    for(var i=1;i<lines.length;i++){
+      var vals=lines[i].split(',');
+      if(vals.length<3) continue;
+      var obj={};
+      headers.forEach(function(h,j){ obj[h]=(vals[j]||'').trim().replace(/^"|"$/g,''); });
+      if(obj.id&&obj.entreprise){
+        var existing=prospects.findIndex(function(p){return p.id===obj.id;});
+        var mapped={id:obj.id,commercial:obj.commercial||'',entreprise:obj.entreprise||'',ville:obj.ville||'',dept:obj.departement||obj.dept||'',source:obj.source||'Terrain',date_creation:obj.date_creation||today(),derniere_action:obj.derniere_action||'',prochaine_relance:obj.prochaine_relance||'',commentaires:obj.commentaires||'',etape_suivante:obj.etape_suivante||'',consigne_manager:obj.consigne_manager||'',statut:obj.statut||'À contacter',date_cmd:obj.date_1ere_commande||obj.date_cmd||'',montant_cmd:parseFloat(obj.montant_estime||obj.montant_cmd)||0,note_conversion:obj.note_conversion||'',nb_actions:parseInt(obj.nb_actions)||1};
+        if(existing>=0) prospects[existing]=mapped;
+        else prospects.push(mapped);
+        imported++;
+      }
+    }
+    renderAll();
+    alert(imported+' prospect(s) importé(s) avec succès.');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// ── RENDER ALL ──────────────────────────────────────────────
+function renderAll(){
+  renderDashboard();
+  var active=document.querySelector('.tab-pane.active');
+  if(active){
+    var id=active.id.replace('pane-','');
+    if(id==='pipeline') renderPipeline();
+    if(id==='relances') renderRelances();
+    if(id==='prospects') renderProspects();
+    if(id==='clients') renderClients();
+  }
+}
+
+// ── SYSTÈME PIN MANAGER ──────────────────────────────────────
+var MANAGER_PIN = '9631';           // ← Changez ce code PIN
+var PIN_SESSION_KEY = 'crm_manager_session';
+var SESSION_DURATION = 8 * 60 * 60 * 1000; // 8h en ms
+var pinBuffer = '';
+
+function pinPress(digit) {
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updateDots();
+  if(pinBuffer.length === 4) setTimeout(checkPin, 80);
+}
+
+function pinDelete() {
+  if(!pinBuffer.length) return;
+  pinBuffer = pinBuffer.slice(0,-1);
+  updateDots();
+}
+
+function updateDots() {
+  var dots = document.querySelectorAll('.pin-dot');
+  dots.forEach(function(d, i) {
+    if(i < pinBuffer.length) {
+      d.style.background = '#C8000F';
+      d.style.borderColor = '#C8000F';
+      d.style.transform = 'scale(1.15)';
+    } else {
+      d.style.background = 'transparent';
+      d.style.borderColor = '#8892a4';
+      d.style.transform = 'scale(1)';
+    }
+  });
+}
+
+function checkPin() {
+  if(pinBuffer === MANAGER_PIN) {
+    try { sessionStorage.setItem(PIN_SESSION_KEY, String(Date.now())); } catch(e){}
+    unlockDashboard();
+  } else {
+    pinBuffer = '';
+    updateDots();
+    var err = document.getElementById('pin-error');
+    var screen = document.getElementById('pin-screen');
+    err.style.visibility = 'visible';
+    screen.style.animation = 'shake .35s ease';
+    setTimeout(function(){
+      err.style.visibility = 'hidden';
+      screen.style.animation = '';
+    }, 2000);
+  }
+}
+
+function checkSession() {
+  try {
+    var ts = sessionStorage.getItem(PIN_SESSION_KEY);
+    if(ts && (Date.now() - parseInt(ts)) < SESSION_DURATION) return true;
+  } catch(e){}
+  return false;
+}
+
+function unlockDashboard() {
+  var screen = document.getElementById('pin-screen');
+  screen.style.transition = 'opacity .35s';
+  screen.style.opacity = '0';
+  setTimeout(function(){ screen.style.display = 'none'; }, 350);
+  launchApp();
+}
+
+function launchApp(){
+  document.getElementById('date-today-lbl').textContent=
+    new Date(TODAY).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+  renderAll();
+  document.querySelectorAll('.modal-overlay').forEach(function(ov){
+    ov.addEventListener('click',function(e){
+      if(e.target===ov) ov.classList.remove('open');
+    });
+  });
+}
+
+// ── INIT ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  if(checkSession()){
+    document.getElementById('pin-screen').style.display = 'none';
+    launchApp();
+  }
+  // sinon l'écran PIN attend la saisie
+});
+</script>
+</body>
+</html>
