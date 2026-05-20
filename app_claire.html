@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0065)file:///C:/Users/metreur07/Downloads/carrara_commercial_v2_4.html -->
+<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -173,15 +173,21 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 /* EMPTY */
 .empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:13px}
 .empty-icon{font-size:38px;margin-bottom:10px;opacity:.4}
+
+/* PIN SCREEN */
+#pin-screen{display:flex;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.pin-key{width:72px;height:72px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:22px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,transform .12s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pin-key:active,.pin-key:hover{background:var(--bg3);transform:scale(.92)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 </style>
 </head>
 <body>
 
 <!-- ═══ ÉCRAN PIN ═══ -->
-<div id="pin-screen" style="display:flex;position:fixed;inset:0;z-index:999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center">
-  <div style="width:64px;height:64px;background:#C8000F;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:24px">&#x1F512;</div>
+<div id="pin-screen">
+  <div style="width:64px;height:64px;background:#C8000F;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:24px">🔒</div>
   <div style="font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px">Carrara CRM</div>
-  <div id="pin-name" style="font-size:14px;color:var(--muted);margin-bottom:32px">Saisissez votre code PIN</div>
+  <div id="pin-name" style="font-size:14px;color:var(--muted);margin-bottom:32px">Bonjour Claire — saisissez votre PIN</div>
   <div style="display:flex;gap:12px;margin-bottom:28px" id="pin-dots">
     <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);transition:all .15s"></div>
     <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);transition:all .15s"></div>
@@ -189,27 +195,22 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);transition:all .15s"></div>
   </div>
   <div id="pin-error" style="height:20px;color:var(--danger);font-size:13px;margin-bottom:12px;visibility:hidden">Code incorrect</div>
-  <div style="display:grid;grid-template-columns:repeat(3,72px);gap:10px">
-    <button class="pin-key" onclick="pinPress('1')">1</button>
-    <button class="pin-key" onclick="pinPress('2')">2</button>
-    <button class="pin-key" onclick="pinPress('3')">3</button>
-    <button class="pin-key" onclick="pinPress('4')">4</button>
-    <button class="pin-key" onclick="pinPress('5')">5</button>
-    <button class="pin-key" onclick="pinPress('6')">6</button>
-    <button class="pin-key" onclick="pinPress('7')">7</button>
-    <button class="pin-key" onclick="pinPress('8')">8</button>
-    <button class="pin-key" onclick="pinPress('9')">9</button>
+  <div style="display:grid;grid-template-columns:repeat(3,72px);gap:10px" id="pin-grid">
+    <button class="pin-key" data-digit="1">1</button>
+    <button class="pin-key" data-digit="2">2</button>
+    <button class="pin-key" data-digit="3">3</button>
+    <button class="pin-key" data-digit="4">4</button>
+    <button class="pin-key" data-digit="5">5</button>
+    <button class="pin-key" data-digit="6">6</button>
+    <button class="pin-key" data-digit="7">7</button>
+    <button class="pin-key" data-digit="8">8</button>
+    <button class="pin-key" data-digit="9">9</button>
     <div></div>
-    <button class="pin-key" onclick="pinPress('0')">0</button>
-    <button class="pin-key" style="font-size:18px;background:transparent;border-color:transparent" onclick="pinDelete()">&#x232B;</button>
+    <button class="pin-key" data-digit="0">0</button>
+    <button class="pin-key" id="pin-del-btn" style="font-size:18px;background:transparent;border-color:transparent">⌫</button>
   </div>
   <div style="margin-top:28px;font-size:11px;color:var(--muted)">Session de 8h — PIN oublié ? Contactez Maxence</div>
 </div>
-<style>
-.pin-key{width:72px;height:72px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:22px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .1s,transform .1s;-webkit-tap-highlight-color:transparent}
-.pin-key:active{background:var(--bg3);transform:scale(.92)}
-@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-</style>
 
 
 <!-- SUCCESS OVERLAY -->
@@ -246,8 +247,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <h2>Saisie rapide</h2>
     <p class="sub">Nouveau prospect ou mise à jour d'un contact</p>
     <div class="mode-toggle">
-      <button class="mode-btn active" id="btn-mode-new" onclick="setMode('new')">🆕 Nouveau</button>
-      <button class="mode-btn" id="btn-mode-update" onclick="setMode('update')">🔄 Mise à jour</button>
+      <button class="mode-btn active" id="btn-mode-new" onclick="setMode(&#39;new&#39;)">🆕 Nouveau</button>
+      <button class="mode-btn" id="btn-mode-update" onclick="setMode(&#39;update&#39;)">🔄 Mise à jour</button>
     </div>
 
     <!-- NOUVEAU -->
@@ -279,7 +280,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       <div class="field" style="margin-bottom:8px"><label>Rechercher dans mon portefeuille</label>
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" id="u-search" placeholder="Nom de l'enseigne…" oninput="filterPortfolio(this.value)" autocomplete="off">
+          <input type="text" id="u-search" placeholder="Nom de l&#39;enseigne…" oninput="filterPortfolio(this.value)" autocomplete="off">
         </div>
       </div>
       <!-- LISTE PORTEFEUILLE -->
@@ -335,16 +336,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 
 <!-- NAVBAR -->
 <div class="navbar">
-  <div class="nav-item active" onclick="goPage('home',this)">
+  <div class="nav-item active" onclick="goPage(&#39;home&#39;,this)">
     <div class="nav-icon">🏠</div><div class="nav-label">Accueil</div>
   </div>
-  <div class="nav-item" onclick="goPage('saisie',this)">
+  <div class="nav-item" onclick="goPage(&#39;saisie&#39;,this)">
     <div class="nav-icon">✏️</div><div class="nav-label">Saisie</div>
   </div>
-  <div class="nav-item" onclick="goPage('portfolio',this)">
+  <div class="nav-item" onclick="goPage(&#39;portfolio&#39;,this)">
     <div class="nav-icon">📋</div><div class="nav-label">Portefeuille</div>
   </div>
-  <div class="nav-item" onclick="goPage('stats',this)">
+  <div class="nav-item" onclick="goPage(&#39;stats&#39;,this)">
     <div class="nav-icon">📊</div><div class="nav-label">Mes stats</div>
   </div>
 </div>
@@ -356,8 +357,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 // ⚙️  CONFIGURATION — À MODIFIER POUR CHAQUE COMMERCIAL
 // ══════════════════════════════════════════════════════════════
 var CONFIG = {
-  commercial: 'Claire'
-  scriptUrl:  'https://script.google.com/macros/s/AKfycbyp6ApJkebzDao5r_T364RxKc6ZtDBJoDEK2by9PIzfp5iG6UUhwTWfiexKP6TOV--mXw/exec',  // URL du Apps Script deploye
+  commercial: 'Claire',          // 'Claire' | 'Mathieu' | 'Maeva'
+  scriptUrl:  'VOTRE_URL_APPS_SCRIPT_ICI',  // URL du Apps Script deploye
   avatars:    {Claire:'CL', Mathieu:'MA', 'Maeva':'MV'},
   colors:     {Claire:'#C8000F', Mathieu:'#4f8ef7', 'Maeva':'#a78bfa'},
   // ── CODES PIN (4 chiffres) ──────────────────────────────
@@ -791,6 +792,35 @@ var DEMO_DATA = [
 var pinBuffer = '';
 var PIN_SESSION_KEY = 'crm_session_' + CONFIG.commercial;
 
+// Brancher les touches du pavé numérique via addEventListener
+// (plus fiable que onclick sur iOS Safari / GitHub Pages)
+document.addEventListener('DOMContentLoaded', function() {
+  // Touches chiffres
+  document.querySelectorAll('#pin-grid .pin-key[data-digit]').forEach(function(btn) {
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      pinPress(this.getAttribute('data-digit'));
+    });
+    btn.addEventListener('click', function() {
+      pinPress(this.getAttribute('data-digit'));
+    });
+  });
+  // Touche suppression
+  var delBtn = document.getElementById('pin-del-btn');
+  if(delBtn) {
+    delBtn.addEventListener('touchend', function(e) { e.preventDefault(); pinDelete(); });
+    delBtn.addEventListener('click', pinDelete);
+  }
+  // Nom du commercial sur l'écran PIN
+  document.getElementById('pin-name').textContent =
+    'Bonjour ' + CONFIG.commercial + ' — saisissez votre PIN';
+  // Vérifier si session encore valide
+  if(checkSession()) {
+    document.getElementById('pin-screen').style.display = 'none';
+    init();
+  }
+});
+
 function pinPress(digit) {
   if(pinBuffer.length >= 4) return;
   pinBuffer += digit;
@@ -824,10 +854,7 @@ function updateDots() {
 function checkPin() {
   var correct = CONFIG.pins[CONFIG.commercial];
   if(pinBuffer === correct) {
-    // Stocker la session avec timestamp
-    try {
-      sessionStorage.setItem(PIN_SESSION_KEY, String(Date.now()));
-    } catch(e) {}
+    try { sessionStorage.setItem(PIN_SESSION_KEY, String(Date.now())); } catch(e) {}
     unlockApp();
   } else {
     pinBuffer = '';
@@ -846,9 +873,7 @@ function checkPin() {
 function checkSession() {
   try {
     var ts = sessionStorage.getItem(PIN_SESSION_KEY);
-    if(ts && (Date.now() - parseInt(ts)) < CONFIG.sessionDuration) {
-      return true;
-    }
+    if(ts && (Date.now() - parseInt(ts)) < CONFIG.sessionDuration) return true;
   } catch(e) {}
   return false;
 }
@@ -861,17 +886,10 @@ function unlockApp() {
   init();
 }
 
-// ── START ─────────────────────────────────────────────────────
-// Afficher le nom du commercial sur l'écran PIN
-document.getElementById('pin-name').textContent =
-  'Bonjour ' + CONFIG.commercial + ' — saisissez votre PIN';
 
-// Vérifier si session encore valide
-if(checkSession()) {
-  document.getElementById('pin-screen').style.display = 'none';
-  init();
-}
-// sinon l'écran PIN reste affiché, on attend la saisie
+// ── START ─────────────────────────────────────────────────────
+// Initialisation gérée dans DOMContentLoaded ci-dessus
 </script>
-</body>
-</html>
+
+
+</body></html>
