@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- saved from url=(0067)file:///C:/Users/metreur07/Downloads/crm_prospection_carrara_3.html -->
-<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>CRM Prospection — Carrara</title>
-<link href="./crm_prospection_carrara_files/css2" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#242d3e;
@@ -175,18 +175,18 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
   </div>
   <div id="pin-error" style="height:22px;color:#f87171;font-size:13px;margin-bottom:12px;visibility:hidden">Code incorrect — réessayez</div>
   <div style="display:grid;grid-template-columns:repeat(3,80px);gap:10px;max-width:280px">
-    <button class="pin-key" onclick="pinPress(&#39;1&#39;)">1</button>
-    <button class="pin-key" onclick="pinPress(&#39;2&#39;)">2</button>
-    <button class="pin-key" onclick="pinPress(&#39;3&#39;)">3</button>
-    <button class="pin-key" onclick="pinPress(&#39;4&#39;)">4</button>
-    <button class="pin-key" onclick="pinPress(&#39;5&#39;)">5</button>
-    <button class="pin-key" onclick="pinPress(&#39;6&#39;)">6</button>
-    <button class="pin-key" onclick="pinPress(&#39;7&#39;)">7</button>
-    <button class="pin-key" onclick="pinPress(&#39;8&#39;)">8</button>
-    <button class="pin-key" onclick="pinPress(&#39;9&#39;)">9</button>
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
     <div></div>
-    <button class="pin-key" onclick="pinPress(&#39;0&#39;)">0</button>
-    <button class="pin-key" style="font-size:20px;background:rgba(255,255,255,0.04);border-color:transparent" onclick="pinDelete()">⌫</button>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key" style="font-size:20px;background:rgba(255,255,255,0.04);border-color:transparent" onclick="pinDelete()">&#x232B;</button>
   </div>
   <div style="margin-top:32px;font-size:11px;color:#8892a4;max-width:260px;line-height:1.6">Session active 8h. En cas de perte du PIN, modifiez la variable <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;font-family:monospace">MANAGER_PIN</code> dans le code.</div>
 </div>
@@ -207,7 +207,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
       <div class="form-grid cols2">
         <div class="modal-field"><label>Commercial *</label>
           <select id="f-commercial"><option value="">— Choisir —</option><option>Claire</option><option>Mathieu</option><option>Maëva</option></select></div>
-        <div class="modal-field"><label>Entreprise *</label><input type="text" id="f-entreprise" placeholder="Nom de l&#39;enseigne"></div>
+        <div class="modal-field"><label>Entreprise *</label><input type="text" id="f-entreprise" placeholder="Nom de l'enseigne"></div>
         <div class="modal-field"><label>Ville *</label><input type="text" id="f-ville" placeholder="Ville"></div>
         <div class="modal-field"><label>Département</label><input type="text" id="f-dept" placeholder="Ex: 38"></div>
       </div>
@@ -228,7 +228,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
         <div class="modal-field"><label>Nb d'actions menées</label><input type="number" id="f-actions" value="1" min="0"></div>
       </div>
       <div class="modal-field"><label>Dernière action / commentaire</label>
-        <textarea id="f-commentaire" placeholder="Décrivez l&#39;état du contact, la dernière visite…"></textarea></div>
+        <textarea id="f-commentaire" placeholder="Décrivez l'état du contact, la dernière visite…"></textarea></div>
       <div class="modal-field"><label>Étape suivante</label>
         <input type="text" id="f-etape" placeholder="Ex: Envoyer échantillon + mise en place Cirrus"></div>
     </div>
@@ -238,8 +238,13 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
         <textarea id="f-consigne" placeholder="Votre instruction pour le commercial…" style="min-height:50px"></textarea></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal(&#39;modal-prospect&#39;)">Annuler</button>
+      <button class="btn-cancel" onclick="closeModal('modal-prospect')">Annuler</button>
       <button class="btn-save" onclick="saveProspect()">Enregistrer</button>
+    </div>
+    <!-- HISTORIQUE dans la modale -->
+    <div id="modal-hist-section" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">📋 Historique des actions</div>
+      <div id="modal-hist-list"></div>
     </div>
   </div>
 </div>
@@ -258,7 +263,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
         <textarea id="f-note-conversion" placeholder="Contexte, produit commandé, circonstance…" style="min-height:60px"></textarea></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal(&#39;modal-client&#39;)">Annuler</button>
+      <button class="btn-cancel" onclick="closeModal('modal-client')">Annuler</button>
       <button class="btn-save-green" onclick="convertToClient()">Confirmer → Client ✓</button>
     </div>
   </div>
@@ -286,12 +291,13 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
 
 <!-- TABS -->
 <div class="tabs-bar">
-  <button class="tab-btn active" onclick="goTab(&#39;dashboard&#39;,this)">Dashboard</button>
-  <button class="tab-btn" onclick="goTab(&#39;pipeline&#39;,this)">Pipeline</button>
-  <button class="tab-btn" onclick="goTab(&#39;relances&#39;,this)">Relances</button>
-  <button class="tab-btn" onclick="goTab(&#39;prospects&#39;,this)">Tous les prospects</button>
-  <button class="tab-btn" onclick="goTab(&#39;clients&#39;,this)">Clients</button>
-  <button class="tab-btn" onclick="goTab(&#39;form-guide&#39;,this)">Guide Form</button>
+  <button class="tab-btn active" onclick="goTab('dashboard',this)">Dashboard</button>
+  <button class="tab-btn" onclick="goTab('pipeline',this)">Pipeline</button>
+  <button class="tab-btn" onclick="goTab('relances',this)">Relances</button>
+  <button class="tab-btn" onclick="goTab('prospects',this)">Tous les prospects</button>
+  <button class="tab-btn" onclick="goTab('clients',this)">Clients</button>
+  <button class="tab-btn" onclick="goTab('historique',this)">Historique</button>
+  <button class="tab-btn" onclick="goTab('form-guide',this)">Guide Form</button>
 </div>
 
 <div class="main">
@@ -299,7 +305,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
 <!-- ═══ DASHBOARD ═══ -->
 <div id="pane-dashboard" class="tab-pane active">
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <button onclick="openNewProspect()" style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s" onmouseover="this.style.opacity=&#39;.85&#39;" onmouseout="this.style.opacity=&#39;1&#39;">＋ Nouveau prospect</button>
+    <button onclick="openNewProspect()" style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">＋ Nouveau prospect</button>
   </div>
   <div class="kpi-row" id="kpi-dashboard"></div>
   <div class="grid2">
@@ -392,6 +398,32 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
       <div class="card-sub">Pour chaque onglet commercial individuel</div>
     </div></div>
     <div id="sheets-guide-content"></div>
+  </div>
+</div>
+
+<!-- ═══ HISTORIQUE ═══ -->
+<div id="pane-historique" class="tab-pane">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+    <select id="hist-filter-com" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit">
+      <option value="">Tous les commerciaux</option>
+      <option>Claire</option><option>Mathieu</option><option>Maëva</option>
+    </select>
+    <select id="hist-filter-type" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit">
+      <option value="">Tous les types</option>
+      <option value="CREATION">Création</option>
+      <option value="MAJ">Mise à jour</option>
+      <option value="CONVERSION → CLIENT">Conversion client</option>
+      <option value="CONSIGNE">Consigne</option>
+    </select>
+    <button onclick="loadHistoriqueManager()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔄 Actualiser</button>
+    <span id="hist-count" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+  </div>
+  <div id="hist-loading" style="text-align:center;padding:40px;color:var(--muted);display:none">
+    <div style="width:28px;height:28px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>
+    Chargement de l'historique…
+  </div>
+  <div class="card" id="hist-content">
+    <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cliquez sur "Actualiser" pour charger l'historique</div>
   </div>
 </div>
 
@@ -776,6 +808,9 @@ function openNewProspect(){
   });
   document.getElementById('f-statut').value='À contacter';
   document.getElementById('f-actions').value='1';
+  // Cacher l'historique sur une nouvelle fiche
+  var histSection = document.getElementById('modal-hist-section');
+  if(histSection) histSection.style.display = 'none';
   openModal('modal-prospect');
 }
 
@@ -795,6 +830,10 @@ function openEdit(id){
   document.getElementById('f-etape').value=p.etape_suivante||'';
   document.getElementById('f-consigne').value=p.consigne_manager||'';
   document.getElementById('f-actions').value=p.nb_actions||1;
+  // Afficher l'historique du prospect
+  var histSection = document.getElementById('modal-hist-section');
+  if(histSection) histSection.style.display = 'block';
+  loadHistoriqueProspect(id);
   openModal('modal-prospect');
 }
 
@@ -903,17 +942,103 @@ function convertToClient(){
   },100);
 }
 
+// ── HISTORIQUE MANAGER ────────────────────────────────────────
+var historiqueCache = [];
+
+function loadHistoriqueManager() {
+  var loading = document.getElementById('hist-loading');
+  var content = document.getElementById('hist-content');
+  if(loading) loading.style.display = 'block';
+  if(content) content.innerHTML = '';
+
+  fetch(SCRIPT_URL + '?action=getHistorique')
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(loading) loading.style.display = 'none';
+      if(res.success) {
+        historiqueCache = res.historique || [];
+        renderHistorique();
+      } else {
+        if(content) content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--danger)">Erreur : '+(res.error||'inconnue')+'</div>';
+      }
+    })
+    .catch(function(){
+      if(loading) loading.style.display = 'none';
+      if(content) content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--danger)">Connexion impossible</div>';
+    });
+}
+
+function renderHistorique() {
+  var fc  = document.getElementById('hist-filter-com')  ? document.getElementById('hist-filter-com').value  : '';
+  var ft  = document.getElementById('hist-filter-type') ? document.getElementById('hist-filter-type').value : '';
+  var el  = document.getElementById('hist-content'); if(!el) return;
+  var cnt = document.getElementById('hist-count');
+  var typeIcon  = {'CREATION':'🆕','MAJ':'✏️','CONVERSION → CLIENT':'🏆','CONSIGNE':'📌'};
+  var typeColor = {'CREATION':'var(--blue)','MAJ':'var(--amber)','CONVERSION → CLIENT':'var(--green)','CONSIGNE':'var(--danger)'};
+
+  var list = historiqueCache.filter(function(h){
+    return (!fc || h.commercial===fc) && (!ft || h.type===ft);
+  });
+  if(cnt) cnt.textContent = list.length+' action'+(list.length>1?'s':'');
+  if(!list.length){
+    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Aucune action trouvée</div>';
+    return;
+  }
+  el.innerHTML='<div class="table-wrap"><table>'
+    +'<thead><tr><th>Date &amp; heure</th><th>Commercial</th><th>Prospect</th><th>Type</th><th>Détail</th></tr></thead><tbody>'
+    +list.map(function(h){
+      var ic  = typeIcon[h.type]  || '•';
+      var col = typeColor[h.type] || 'var(--muted)';
+      var p   = prospects.find(function(x){ return x.id===h.id_prospect; });
+      var ent = p ? p.entreprise : h.id_prospect;
+      return '<tr>'
+        +'<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+h.datetime+'</td>'
+        +'<td><span class="com-tag '+comClass(h.commercial)+'">'+h.commercial+'</span></td>'
+        +'<td style="font-weight:600;font-size:12px">'+ent+'</td>'
+        +'<td><span style="font-size:11px;font-weight:700;color:'+col+'">'+ic+' '+h.type+'</span></td>'
+        +'<td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+h.note+'</td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table></div>';
+}
+
+function loadHistoriqueProspect(prospectId) {
+  var el = document.getElementById('modal-hist-list'); if(!el) return;
+  el.innerHTML='<div style="text-align:center;padding:10px;color:var(--muted);font-size:11px">Chargement…</div>';
+  fetch(SCRIPT_URL+'?action=getHistorique&id='+encodeURIComponent(prospectId))
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(!res.success||!res.historique.length){
+        el.innerHTML='<div style="text-align:center;padding:10px;color:var(--muted);font-size:11px">Aucune action enregistrée</div>';
+        return;
+      }
+      var typeIcon={'CREATION':'🆕','MAJ':'✏️','CONVERSION → CLIENT':'🏆','CONSIGNE':'📌'};
+      el.innerHTML=res.historique.map(function(h){
+        return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+          +'<div style="font-size:15px;flex-shrink:0">'+(typeIcon[h.type]||'•')+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:11px;font-weight:600;color:var(--text)">'+h.type+'</div>'
+            +'<div style="font-size:12px;color:var(--muted);margin-top:2px">'+h.note+'</div>'
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--muted);flex-shrink:0;white-space:nowrap">'+h.datetime+'</div>'
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(){ el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px">Indisponible</div>'; });
+}
+
 // ── NAVIGATION ──────────────────────────────────────────────
 function goTab(name,btn){
   document.querySelectorAll('.tab-pane').forEach(function(el){el.classList.remove('active');});
   document.querySelectorAll('.tab-btn').forEach(function(el){el.classList.remove('active');});
   document.getElementById('pane-'+name).classList.add('active');
   btn.classList.add('active');
-  if(name==='pipeline') renderPipeline();
-  if(name==='relances') renderRelances();
-  if(name==='prospects') renderProspects();
-  if(name==='clients') renderClients();
-  if(name==='form-guide') renderFormGuide();
+  if(name==='pipeline')    renderPipeline();
+  if(name==='relances')    renderRelances();
+  if(name==='prospects')   renderProspects();
+  if(name==='clients')     renderClients();
+  if(name==='form-guide')  renderFormGuide();
+  if(name==='historique')  loadHistoriqueManager();
 }
 
 // ── APPS SCRIPT — SYNCHRONISATION ───────────────────────────
@@ -1126,6 +1251,5 @@ document.addEventListener('DOMContentLoaded', function(){
   // sinon l'écran PIN attend la saisie
 });
 </script>
-
-
-</body></html>
+</body>
+</html>
