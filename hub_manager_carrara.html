@@ -145,10 +145,10 @@ var SESSION_DURATION = 8 * 60 * 60 * 1000;
 var pinBuffer = '';
 
 function checkSession(){
-  try{ var ts=sessionStorage.getItem(SESSION_KEY); return ts&&(Date.now()-parseInt(ts))<SESSION_DURATION; }catch(e){return false;}
+  try{ var ts=localStorage.getItem(SESSION_KEY); return ts&&(Date.now()-parseInt(ts))<SESSION_DURATION; }catch(e){return false;}
 }
 function unlockHub(){
-  try{sessionStorage.setItem(SESSION_KEY,String(Date.now()));}catch(e){}
+  try{localStorage.setItem(SESSION_KEY,String(Date.now()));}catch(e){}
   var screen=document.getElementById('pin-screen');
   screen.style.transition='opacity .3s'; screen.style.opacity='0';
   setTimeout(function(){screen.style.display='none';},300);
