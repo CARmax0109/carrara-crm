@@ -187,17 +187,12 @@ document.addEventListener('DOMContentLoaded', function(){
       updateDots();
       if(pinBuffer.length===4) setTimeout(checkPin,80);
     });
-    btn.addEventListener('click',function(){
-      if(pinBuffer.length>=4) return;
-      pinBuffer+=this.getAttribute('data-digit');
-      updateDots();
-      if(pinBuffer.length===4) setTimeout(checkPin,80);
-    });
   });
   var delBtn=document.getElementById('pin-del-btn');
   if(delBtn){
     delBtn.addEventListener('touchend',function(e){e.preventDefault();pinBuffer=pinBuffer.slice(0,-1);updateDots();});
-    delBtn.addEventListener('click',function(){pinBuffer=pinBuffer.slice(0,-1);updateDots();});
+    // click fallback for desktop only (no touch)
+    delBtn.addEventListener('click',function(e){if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;pinBuffer=pinBuffer.slice(0,-1);updateDots();});
   }
 
   // Vérifier session existante

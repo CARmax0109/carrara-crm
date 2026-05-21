@@ -837,7 +837,9 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       pinPress(this.getAttribute('data-digit'));
     });
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function(e) {
+      // Ignorer si déjà géré par touchend (évite le double déclenchement sur iOS)
+      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
       pinPress(this.getAttribute('data-digit'));
     });
   });
@@ -845,7 +847,10 @@ document.addEventListener('DOMContentLoaded', function() {
   var delBtn = document.getElementById('pin-del-btn');
   if(delBtn) {
     delBtn.addEventListener('touchend', function(e) { e.preventDefault(); pinDelete(); });
-    delBtn.addEventListener('click', pinDelete);
+    delBtn.addEventListener('click', function(e) {
+      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      pinDelete();
+    });
   }
   // Nom du commercial sur l'écran PIN
   document.getElementById('pin-name').textContent =

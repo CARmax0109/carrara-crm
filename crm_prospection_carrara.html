@@ -174,19 +174,19 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
     <div class="pin-dot" style="width:16px;height:16px;border-radius:50%;border:2px solid #8892a4;transition:all .15s"></div>
   </div>
   <div id="pin-error" style="height:22px;color:#f87171;font-size:13px;margin-bottom:12px;visibility:hidden">Code incorrect — réessayez</div>
-  <div style="display:grid;grid-template-columns:repeat(3,80px);gap:10px;max-width:280px">
-    <button class="pin-key" onclick="pinPress('1')">1</button>
-    <button class="pin-key" onclick="pinPress('2')">2</button>
-    <button class="pin-key" onclick="pinPress('3')">3</button>
-    <button class="pin-key" onclick="pinPress('4')">4</button>
-    <button class="pin-key" onclick="pinPress('5')">5</button>
-    <button class="pin-key" onclick="pinPress('6')">6</button>
-    <button class="pin-key" onclick="pinPress('7')">7</button>
-    <button class="pin-key" onclick="pinPress('8')">8</button>
-    <button class="pin-key" onclick="pinPress('9')">9</button>
+  <div style="display:grid;grid-template-columns:repeat(3,80px);gap:10px;max-width:280px" id="pin-grid">
+    <button class="pin-key" data-digit="1">1</button>
+    <button class="pin-key" data-digit="2">2</button>
+    <button class="pin-key" data-digit="3">3</button>
+    <button class="pin-key" data-digit="4">4</button>
+    <button class="pin-key" data-digit="5">5</button>
+    <button class="pin-key" data-digit="6">6</button>
+    <button class="pin-key" data-digit="7">7</button>
+    <button class="pin-key" data-digit="8">8</button>
+    <button class="pin-key" data-digit="9">9</button>
     <div></div>
-    <button class="pin-key" onclick="pinPress('0')">0</button>
-    <button class="pin-key" style="font-size:20px;background:rgba(255,255,255,0.04);border-color:transparent" onclick="pinDelete()">&#x232B;</button>
+    <button class="pin-key" data-digit="0">0</button>
+    <button class="pin-key" id="pin-del-btn" style="font-size:20px;background:rgba(255,255,255,0.04);border-color:transparent">&#x232B;</button>
   </div>
   <div style="margin-top:32px;font-size:11px;color:#8892a4;max-width:260px;line-height:1.6">Session active 8h. En cas de perte du PIN, modifiez la variable <code style="background:rgba(255,255,255,0.08);padding:1px 6px;border-radius:4px;font-family:monospace">MANAGER_PIN</code> dans le code.</div>
 </div>
@@ -1244,11 +1244,29 @@ function launchApp(){
 
 // ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function(){
+  // Brancher le pavé numérique sans double déclenchement iOS
+  document.querySelectorAll('#pin-grid .pin-key[data-digit]').forEach(function(btn){
+    btn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      pinPress(this.getAttribute('data-digit'));
+    });
+    btn.addEventListener('click', function(e){
+      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      pinPress(this.getAttribute('data-digit'));
+    });
+  });
+  var delBtn = document.getElementById('pin-del-btn');
+  if(delBtn){
+    delBtn.addEventListener('touchend', function(e){ e.preventDefault(); pinDelete(); });
+    delBtn.addEventListener('click', function(e){
+      if(e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      pinDelete();
+    });
+  }
   if(checkSession()){
     document.getElementById('pin-screen').style.display = 'none';
     launchApp();
   }
-  // sinon l'écran PIN attend la saisie
 });
 </script>
 </body>
