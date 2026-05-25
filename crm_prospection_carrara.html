@@ -1279,7 +1279,10 @@ function importReservoir(input) {
             try {
               var res = JSON.parse(txt);
               if (!res.success) errors2.push(com2 + ': ' + (res.error||'erreur'));
-            } catch(e) { /* reponse non-JSON ignoree */ }
+            } catch(e) {
+              // Reponse non-JSON - afficher les 120 premiers chars pour debug
+              errors2.push(com2 + ': reponse inattendue [' + txt.slice(0,120) + ']');
+            }
             sendNext(i + 1);
           })
           .catch(function(err){
