@@ -1241,49 +1241,36 @@ function importReservoir(input) {
       if (statusEl) statusEl.textContent = '\u23f3 Envoi vers Google Sheet (' + totalClients + ' clients)\u2026';
 
       // 5. Envoyer vers Apps Script
+      // Payload compact (cles n/r/c/d) pour rester sous la limite URL
       var today = new Date().toISOString().slice(0,10);
-      // Envoi en 3 requetes GET (une par commercial) - evite limite taille URL
       var coms = ['Mathieu','Claire','Maeva'];
-      var sentCount = 0;
-      var errors = [];
-
+      var compactPayload = {};
+      var totalC = 0;
+      for (var ci2 = 0; ci2 < coms.length; ci2++) {
+        var cn2 = coms[ci2];
+        var ckeys = Object.keys(bycom[cn2]);
+        ckeys.sort(function(a,b){ return bycom[cn2][b].ca_total - bycom[cn2][a].ca_total; });
+        compactPayload[cn2] = ckeys.map(function(kn){ return {n:kn,r:Math.round(bycom[cn2][kn].ca_total),c:Math.round(ca2026[kn]||0),d:bycom[cn2][kn].dossiers.length}; });
+        totalC += ckeys.length;
+      }
+      totalClients = totalC;
+      var errors2 = [];
       function sendNext(i) {
         if (i >= coms.length) {
           if (btnEl) btnEl.style.opacity = '1';
-          if (errors.length > 0) {
-            if (statusEl) { statusEl.textContent = '\u274c ' + errors[0]; statusEl.style.color='var(--danger)'; }
+          if (errors2.length > 0) {
+            if (statusEl) { statusEl.textContent = '\u274c ' + errors2[0]; statusEl.style.color='var(--danger)'; }
           } else {
-            if (statusEl) {
-              statusEl.textContent = '\u2705 ' + totalClients + ' clients sync\u00e9s \u00b7 '
-                + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-              statusEl.style.color = 'var(--green)';
-            }
-            var lbl = document.getElementById('date-today-lbl');
-            if (lbl) {
-              var orig = lbl.textContent;
-              lbl.textContent = '\u2705 R\u00e9servoir import\u00e9 \u2014 ' + totalClients + ' clients';
-              setTimeout(function(){lbl.textContent=orig;}, 5000);
-            }
+            if (statusEl) { statusEl.textContent = '\u2705 ' + totalClients + ' clients sync\u00e9s \u00b7 ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); statusEl.style.color='var(--green)'; }
+            var lbl2=document.getElementById('date-today-lbl');
+            if(lbl2){var orig2=lbl2.textContent;lbl2.textContent='\u2705 R\u00e9servoir import\u00e9 \u2014 '+totalClients+' clients';setTimeout(function(){lbl2.textContent=orig2;},5000);}
           }
           return;
         }
-        var com = coms[i];
-        if (statusEl) statusEl.textContent = '\u23f3 Sync ' + com + ' (' + (i+1) + '/3)\u2026';
-        var url = SCRIPT_URL
-          + '?action=uploadClientsData'
-          + '&date=' + encodeURIComponent(today)
-          + '&commercial=' + encodeURIComponent(com)
-          + '&data=' + encodeURIComponent(JSON.stringify(payload[com]));
-        fetch(url)
-          .then(function(r){ return r.json(); })
-          .then(function(res){
-            if (!res.success) errors.push(com + ': ' + (res.error||'erreur'));
-            sendNext(i + 1);
-          })
-          .catch(function(){
-            errors.push(com + ': connexion impossible');
-            sendNext(i + 1);
-          });
+        var com2 = coms[i];
+        if (statusEl) statusEl.textContent = '\u23f3 Sync ' + com2 + ' (' + (i+1) + '/3)\u2026';
+        var url2 = SCRIPT_URL + '?action=uploadClientsData&date=' + encodeURIComponent(today) + '&commercial=' + encodeURIComponent(com2) + '&data=' + encodeURIComponent(JSON.stringify(compactPayload[com2]));
+        fetch(url2).then(function(r){return r.json();}).then(function(res){if(!res.success)errors2.push(com2+': '+(res.error||'erreur'));sendNext(i+1);}).catch(function(){errors2.push(com2+': connexion impossible');sendNext(i+1);});
       }
       sendNext(0);
 
