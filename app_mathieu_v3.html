@@ -185,7 +185,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <div class="card" style="margin-bottom:10px">
       <div style="font-size:13px;font-weight:700;margin-bottom:10px">Rechercher dans mon portefeuille</div>
       <div class="search-wrap"><span class="search-icon">&#x1F50D;</span><input type="text" id="u-search" placeholder="Nom de l’enseigne…" oninput="filterPortfolioSaisie(this.value)" autocomplete="off"></div>
-      <div id="portfolio-saisie-list" style="max-height:220px;overflow-y:auto"></div>
+      <div id="portfolio-saisie-list" style="max-height:200px;overflow-y:auto;margin-top:4px"></div>
     </div>
     <div id="fiche-selected" style="display:none">
       <div class="consigne-box" id="consigne-box"><div class="consigne-lbl">&#x1F4CC; Consigne de Maxence</div><div id="consigne-txt" style="font-size:13px"></div></div>
@@ -282,11 +282,14 @@ var agendaData = [];
 var selectedId = null;
 var clientsFilter = 'all';
 var VISIT_TYPES  = ['Prospect','Bilan','Perform','Technik','Energy','Site RR'];
+var VISIT_TYPES_CLIENT = ['Bilan','Perform','Technik','Energy','Site RR'];
+var VISIT_KEYS_CLIENT  = ['visites_bilan','visites_perform','visites_technik','visites_energy','visites_site'];
+var VISIT_COLORS_CLIENT= ['#f59e0b','#34d399','#a78bfa','#22d3ee','#f87171'];
 var VISIT_KEYS   = ['visites_prospect','visites_bilan','visites_perform','visites_technik','visites_energy','visites_site'];
 var VISIT_COLORS = ['#4f8ef7','#f59e0b','#34d399','#a78bfa','#22d3ee','#f87171'];
 
 function api(p){var qs=Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k]);}).join('&');return fetch(CONFIG.scriptUrl+'?'+qs).then(function(r){return r.json();});}
-function fmtK(v){return v?(v>=1000?(v/1000).toFixed(0)+'k€':Math.round(v)+'€'):'--';}
+function fmtK(v){if(!v)return '--';if(v>=1000000)return (v/1000000).toFixed(2)+'M€';if(v>=1000)return (v/1000).toFixed(0)+'k€';return Math.round(v)+'€';}
 function fmtM(v){return v?(v/1e6).toFixed(2)+'M€':'--';}
 function fmtDate(d){if(!d)return '';var p=d.split('-');return p[2]+'/'+p[1];}
 function dateStatus(d){if(!d)return 'none';if(d<TODAY)return 'urgent';if(d===TODAY)return 'today-c';return 'future';}
@@ -443,8 +446,8 @@ function renderClients(search){
     var pO=c.objectif?Math.min(100,Math.round(c.ca_2026/c.objectif*100)):0;
     var bC=pO>=80?'var(--green)':pO>=50?'var(--amber)':'var(--danger)';
     var ep=evolPct(c.evolution);
-    var eC=ep==null?'var(--muted)':ep>0?'var(--green)':'var(--danger)';
-    var eI=ep==null?'':ep>0?'▲':'▼';
+    var eC=ep==null?'var(--muted)':ep>0?'#34d399':'var(--danger)';
+    var eI=ep==null?'':ep>0?'▲ ':'▼ ';
     var vH=VISIT_TYPES.map(function(vt,i){
       var key=VISIT_KEYS[i];
       var dX=c[key]>0;
@@ -470,17 +473,17 @@ function renderClients(search){
   }).join('');
 }
 
-function toggleVisite(idx,colorIdx){
+function toggleVisite(idx,vt){
   var c=clientsData[idx];if(!c)return;
-  var vt=VISIT_TYPES[colorIdx];
   if(!c.visites_saisies)c.visites_saisies={};
   if(c.visites_saisies[vt]){
     delete c.visites_saisies[vt];
   }else{
     c.visites_saisies[vt]=TODAY;
+    // Enregistrer dans Google Sheet - visible dans le board manager
     api({action:'addVisite',commercial:CONFIG.commercial,client:c.nom,type_visite:vt,note:''}).catch(function(){});
   }
-  renderClients(document.getElementById('clients-search').value||'');
+  renderClients(document.getElementById('clients-search')?document.getElementById('clients-search').value:'');
   renderClientsKPI();
 }
 
