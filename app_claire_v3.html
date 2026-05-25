@@ -205,8 +205,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 <div id="page-clients" class="page">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
     <div class="section-title" style="margin:0">Mon portefeuille</div>
-    <label class="btn-import-small">&#x1F4E5; Importer<input type="file" accept=".xlsx,.xls" onchange="importClientsXLSX(this)"></label>
+    <button id="btn-sync-clients" onclick="syncClientsFromSheet()" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(52,211,153,0.35);background:rgba(52,211,153,0.08);color:var(--green);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">&#x1F504; Synchroniser</button>
   </div>
+  <div id="sync-date-info" style="font-size:10px;color:var(--muted);margin-bottom:6px;text-align:right"></div>
   <div id="clients-kpi-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"></div>
   <div id="clients-visites-card" class="card" style="display:none">
     <div style="font-size:12px;font-weight:600;margin-bottom:12px">Visites réalisées par type</div>
@@ -300,7 +301,7 @@ function init(){
   document.getElementById('lbl-date').textContent=new Date(TODAY).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
   loadProspects();
   loadAgenda();
-  loadClientsFromSheet();
+  syncClientsFromSheet();
 }
 
 function loadProspects(){
