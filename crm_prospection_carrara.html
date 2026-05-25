@@ -282,8 +282,8 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
         🔄 Synchroniser CRM
       </button>
       <label class="btn-import" style="margin-top:4px;border-color:rgba(52,211,153,0.4);background:rgba(52,211,153,0.08);color:#34d399" id="btn-import-reservoir">
-        📊 Importer réservoir ERIS
-        <input type="file" accept=".xlsx,.xls" onchange="importReservoir(this)" id="input-reservoir">
+        &#x1F4CA; Importer tableau de suivi
+        <input type="file" accept=".xlsx,.xls" onchange="importTableauSuivi(this)" id="input-reservoir">
       </label>
       <div id="reservoir-status" style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right"></div>
       <label class="btn-import" style="margin-top:4px;opacity:.6;font-size:10px">
@@ -1121,6 +1121,128 @@ function pushConsigneToScript(id, consigne){
 }
 
 // ── IMPORT RÉSERVOIR ERIS (depuis le manager) ─────────────────
+
+// ── IMPORT TABLEAU DE SUIVI → localStorage → apps commerciales ──
+function importTableauSuivi(input) {
+  var file = input.files[0]; if (!file) return;
+  var statusEl = document.getElementById('reservoir-status');
+  var btnEl    = document.getElementById('btn-import-reservoir');
+  if (statusEl) { statusEl.textContent = '\u23f3 Lecture du fichier\u2026'; statusEl.style.color='var(--muted)'; }
+  if (btnEl) btnEl.style.opacity = '.6';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, {type:'array'});
+
+      // Trouver le dernier onglet mensuel (MAI, AVR, MAR, FEV, JAN...)
+      var months = ['MAI','AVR','MAR','FEV','JAN'];
+      var shName = null;
+      for (var m = 0; m < months.length; m++) {
+        if (wb.SheetNames.indexOf(months[m]) >= 0) { shName = months[m]; break; }
+      }
+      if (!shName) {
+        for (var j = wb.SheetNames.length-1; j >= 0; j--) {
+          if (wb.SheetNames[j] !== 'BASE') { shName = wb.SheetNames[j]; break; }
+        }
+      }
+      if (!shName) { showStatus('\u274c Onglet mensuel non trouv\u00e9', 'danger'); if(btnEl)btnEl.style.opacity='1'; return; }
+
+      if (statusEl) statusEl.textContent = '\u23f3 Analyse ' + shName + '\u2026';
+
+      var ws  = wb.Sheets[shName];
+      var raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+      function nv(v) { try { return v!=null&&v!==''?parseFloat(v)||0:0; } catch(e){ return 0; } }
+      function sv(v) { return v!=null?String(v).replace(/'/g,'\u2019').trim():''; }
+
+      // Detecter colonnes de chaque secteur depuis row 1
+      var row1 = raw[1] || [];
+      var sectors = [];
+      row1.forEach(function(v, i) {
+        if (!v) return;
+        var vs = String(v).toUpperCase();
+        if (vs.indexOf('MATHIEU') >= 0) sectors.push({col:i, com:'Mathieu'});
+        else if (vs.indexOf('CLAIRE') >= 0) sectors.push({col:i, com:'Claire'});
+        else if (vs.indexOf('MA') >= 0 && (vs.indexOf('\u00cbVA') >= 0 || vs.indexOf('EVA') >= 0)) sectors.push({col:i, com:'Maeva'});
+      });
+
+      if (sectors.length === 0) {
+        // Fallback positions fixes
+        sectors = [{col:0,com:'Mathieu'},{col:19,com:'Claire'},{col:38,com:'Maeva'}];
+      }
+
+      var allData = {};
+      var totalClients = 0;
+
+      sectors.forEach(function(sec) {
+        var clients = [];
+        for (var r = 6; r < raw.length; r++) {
+          var row = raw[r]; if (!row) continue;
+          var nom = sv(row[sec.col]);
+          if (!nom || nom === 'TOTAL') continue;
+          clients.push({
+            nom:                nom,
+            commercial:         sec.com,
+            visites_theoriques: nv(row[sec.col+1]),
+            visites_prospect:   nv(row[sec.col+2]),
+            visites_bilan:      nv(row[sec.col+3]),
+            visites_perform:    nv(row[sec.col+4]),
+            visites_technik:    nv(row[sec.col+5]),
+            visites_energy:     nv(row[sec.col+6]),
+            visites_site:       nv(row[sec.col+7]),
+            visites_total:      nv(row[sec.col+8]),
+            ca_2025:            nv(row[sec.col+9]),
+            ca_2025_moy:        nv(row[sec.col+10]),
+            ca_2025_cumul:      nv(row[sec.col+11]),
+            ca_2026:            nv(row[sec.col+12]),
+            evolution:          sv(row[sec.col+13]),
+            reservoir:          nv(row[sec.col+14]),
+            objectif:           nv(row[sec.col+15]),
+            pct_obj:            nv(row[sec.col+16]),
+          });
+        }
+        allData[sec.com] = clients;
+        totalClients += clients.length;
+      });
+
+      // Stocker dans localStorage - accessible par toutes les apps du meme domaine
+      var syncDate = new Date().toISOString().slice(0,10);
+      var payload  = {data: allData, date: syncDate, sheet: shName};
+      try {
+        localStorage.setItem('carrara_clients_data', JSON.stringify(payload));
+      } catch(e) {
+        showStatus('\u274c Erreur stockage: ' + e.message, 'danger');
+        if (btnEl) btnEl.style.opacity = '1';
+        return;
+      }
+
+      if (btnEl) btnEl.style.opacity = '1';
+      if (statusEl) {
+        statusEl.textContent = '\u2705 ' + totalClients + ' clients synchronis\u00e9s depuis ' + shName + ' \u00b7 '
+          + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        statusEl.style.color = 'var(--green)';
+      }
+      var lbl = document.getElementById('date-today-lbl');
+      if (lbl) {
+        var orig = lbl.textContent;
+        lbl.textContent = '\u2705 ' + totalClients + ' clients mis \u00e0 jour (' + shName + ')';
+        setTimeout(function(){lbl.textContent=orig;}, 5000);
+      }
+
+    } catch(err) {
+      if (btnEl) btnEl.style.opacity = '1';
+      if (statusEl) { statusEl.textContent = '\u274c Erreur: ' + err.message; statusEl.style.color='var(--danger)'; }
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showStatus(msg, type) {
+  var el = document.getElementById('reservoir-status');
+  if (el) { el.textContent = msg; el.style.color = type==='danger'?'var(--danger)':'var(--green)'; }
+}
+
 function importReservoir(input) {
   var file = input.files[0]; if (!file) return;
   var statusEl = document.getElementById('reservoir-status');

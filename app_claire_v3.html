@@ -586,56 +586,32 @@ function renderStats(){
 
 
 // ── SYNC CLIENTS DEPUIS GOOGLE SHEET (auto au lancement) ────
+
 function syncClientsFromSheet() {
   var btn = document.getElementById('btn-sync-clients');
-  if (btn) { btn.textContent = '\u23f3 Sync\u2026'; btn.disabled = true; }
-  api({action:'getClientsData', commercial: CONFIG.commercial})
-    .then(function(res) {
-      if (btn) { btn.textContent = '\ud83d\udce5 Importer tableau'; btn.disabled = false; }
-      if (res.success && res.clients && res.clients.length > 0) {
-        // Enrichir les donn\u00e9es du r\u00e9servoir avec les donn\u00e9es du tableau de suivi si disponibles
-        if (clientsData.length > 0) {
-          // Merger: garder donn\u00e9es tableau (visites, objectifs) + enrichir avec r\u00e9servoir
-          res.clients.forEach(function(rc) {
-            var existing = clientsData.find(function(c) { return c.nom === rc.nom; });
-            if (existing) {
-              existing.reservoir = rc.reservoir;
-              existing.ca_2026   = existing.ca_2026 || rc.ca_2026;
-              existing.dossiers  = rc.dossiers || [];
-            } else {
-              clientsData.push({
-                nom: rc.nom, commercial: rc.commercial,
-                reservoir: rc.reservoir, ca_2026: rc.ca_2026, ca_2025: rc.ca_2025||0,
-                nb_dossiers: rc.nb_dossiers, dossiers: rc.dossiers||[],
-                visites_theoriques:0, visites_total:0, objectif:0,
-                evolution:'', ca_2025_cumul:0, visites_saisies:{},
-              });
-            }
-          });
-        } else {
-          // Pas de donn\u00e9es tableau: utiliser directement les donn\u00e9es r\u00e9servoir
-          clientsData = res.clients.map(function(rc) {
-            return {
-              nom: rc.nom, commercial: rc.commercial,
-              reservoir: rc.reservoir, ca_2026: rc.ca_2026, ca_2025: rc.ca_2025||0,
-              ca_2025_cumul: rc.ca_2025||0, nb_dossiers: rc.nb_dossiers,
-              dossiers: rc.dossiers||[], visites_theoriques:0, visites_total:0,
-              objectif:0, evolution:'', pct_obj:0, visites_saisies:{},
-            };
-          });
-        }
-        renderClientsKPI();
-        renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
-        // Afficher la date de sync
-        var syncInfo = document.getElementById('sync-date-info');
-        if (syncInfo && res.sync_date) {
-          syncInfo.textContent = 'Donn\u00e9es ERIS du ' + res.sync_date.split('-').reverse().join('/');
-        }
-      }
-    })
-    .catch(function() {
-      if (btn) { btn.textContent = '\ud83d\udce5 Importer tableau'; btn.disabled = false; }
-    });
+  try {
+    var raw = localStorage.getItem('carrara_clients_data');
+    if (!raw) {
+      if (btn) btn.textContent = '\ud83d\udce5 Tableau Excel';
+      var si = document.getElementById('sync-date-info');
+      if (si) si.textContent = 'Importez le tableau depuis le dashboard manager';
+      return;
+    }
+    var payload = JSON.parse(raw);
+    var myClients = (payload.data || {})[CONFIG.commercial] || [];
+    if (myClients.length > 0) {
+      myClients.forEach(function(nc) {
+        var ex = clientsData.find(function(c){ return c.nom === nc.nom; });
+        nc.visites_saisies = ex ? (ex.visites_saisies || {}) : {};
+      });
+      clientsData = myClients;
+      renderClientsKPI();
+      renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
+      var si = document.getElementById('sync-date-info');
+      if (si && payload.sheet) si.textContent = 'Donn\u00e9es ' + payload.sheet + ' \u00b7 ' + (payload.date||'').split('-').reverse().join('/');
+    }
+  } catch(e) { console.warn('Sync:', e.message); }
+  if (btn) btn.textContent = '\ud83d\udce5 Tableau Excel';
 }
 
 function goPage(name,btn){
