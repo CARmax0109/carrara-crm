@@ -118,6 +118,15 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 @keyframes pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+.cr-panel{background:var(--bg3);border:1px solid rgba(79,142,247,0.35);border-radius:12px;padding:12px 14px;margin-top:8px;display:none}
+.cr-panel.show{display:block}
+.cr-title{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.cr-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:none;height:90px;line-height:1.5;outline:none}
+.cr-textarea:focus{border-color:var(--blue)}
+.cr-actions{display:flex;gap:8px;margin-top:8px}
+.cr-btn-save{flex:1;padding:9px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.cr-btn-cancel{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
@@ -473,19 +482,76 @@ function renderClients(search){
   }).join('');
 }
 
-function toggleVisite(idx,vt){
-  var c=clientsData[idx];if(!c)return;
-  if(!c.visites_saisies)c.visites_saisies={};
-  if(c.visites_saisies[vt]){
+
+var _crIdx = null;
+var _crVt  = null;
+
+function toggleVisite(idx, vt) {
+  var c = clientsData[idx]; if (!c) return;
+  if (!c.visites_saisies) c.visites_saisies = {};
+
+  // Si déjà coché -> décocher sans compte rendu
+  if (c.visites_saisies[vt]) {
     delete c.visites_saisies[vt];
-  }else{
-    c.visites_saisies[vt]=TODAY;
-    // Enregistrer dans Google Sheet - visible dans le board manager
-    api({action:'addVisite',commercial:CONFIG.commercial,client:c.nom,type_visite:vt,note:''}).catch(function(){});
+    renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
+    renderClientsKPI();
+    return;
   }
-  renderClients(document.getElementById('clients-search')?document.getElementById('clients-search').value:'');
-  renderClientsKPI();
+
+  // Ouvrir le panneau compte rendu
+  _crIdx = idx;
+  _crVt  = vt;
+
+  // Fermer les autres panneaux ouverts
+  document.querySelectorAll('.cr-panel.show').forEach(function(p){ p.classList.remove('show'); });
+
+  var panelId = 'cr-' + idx + '-' + vt.replace(/\s/g,'_');
+  var panel   = document.getElementById(panelId);
+  if (panel) {
+    panel.classList.add('show');
+    var ta = panel.querySelector('.cr-textarea');
+    if (ta) { ta.value = ''; setTimeout(function(){ ta.focus(); }, 100); }
+  }
 }
+
+function saveCR(idx, vt) {
+  var panelId = 'cr-' + idx + '-' + vt.replace(/\s/g,'_');
+  var panel   = document.getElementById(panelId);
+  var ta      = panel ? panel.querySelector('.cr-textarea') : null;
+  var note    = ta ? ta.value.trim() : '';
+  var btn     = panel ? panel.querySelector('.cr-btn-save') : null;
+
+  var c = clientsData[idx]; if (!c) return;
+  if (!c.visites_saisies) c.visites_saisies = {};
+  c.visites_saisies[vt] = TODAY;
+
+  if (btn) { btn.textContent = '\u23f3'; btn.disabled = true; }
+
+  api({action:'addVisite', commercial:CONFIG.commercial, client:c.nom, type_visite:vt, note:note})
+    .then(function(res) {
+      if (btn) { btn.textContent = '\u2713 Enregistr\u00e9'; }
+      setTimeout(function(){
+        if (panel) panel.classList.remove('show');
+        if (btn) { btn.textContent = '\u2713 Enregistrer'; btn.disabled = false; }
+        renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
+        renderClientsKPI();
+      }, 800);
+    })
+    .catch(function() {
+      // Enregistrer quand même localement même si réseau indispo
+      if (btn) { btn.textContent = '\u2713 Enregistrer'; btn.disabled = false; }
+      if (panel) panel.classList.remove('show');
+      renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
+      renderClientsKPI();
+    });
+}
+
+function cancelCR(idx, vt) {
+  var panelId = 'cr-' + idx + '-' + vt.replace(/\s/g,'_');
+  var panel = document.getElementById(panelId);
+  if (panel) panel.classList.remove('show');
+}
+
 
 function importClientsXLSX(input){
   var file=input.files[0];if(!file)return;
@@ -629,6 +695,9 @@ function goPage(name,btn){
 }
 window.goPage=goPage;
 window.setClientsFilter=setClientsFilter;
+window.toggleVisite=toggleVisite;
+window.saveCR=saveCR;
+window.cancelCR=cancelCR;
 window.toggleVisite=toggleVisite;
 window.importClientsXLSX=importClientsXLSX;
 

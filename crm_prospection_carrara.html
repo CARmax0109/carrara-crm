@@ -303,6 +303,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
   <button class="tab-btn" onclick="goTab('clients',this)">Clients</button>
   <button class="tab-btn" onclick="goTab('historique',this)">Historique</button>
   <button class="tab-btn" onclick="goTab('form-guide',this)">Guide Form</button>
+  <button class="tab-btn" onclick="goTab('comptes-rendus',this)">&#x1F4DD; Comptes rendus</button>
 </div>
 
 <div class="main">
@@ -404,6 +405,34 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
     </div></div>
     <div id="sheets-guide-content"></div>
   </div>
+</div>
+
+<div id="pane-comptes-rendus" class="tab-pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:14px;font-weight:700">Comptes rendus de visite</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Saisis par vos commerciaux depuis leur app</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="cr-filter-com" onchange="renderCR()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les commerciaux</option>
+        <option>Mathieu</option>
+        <option>Claire</option>
+        <option>Maeva</option>
+      </select>
+      <select id="cr-filter-type" onchange="renderCR()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les types</option>
+        <option>Bilan</option>
+        <option>Perform</option>
+        <option>Technik</option>
+        <option>Energy</option>
+        <option>Site RR</option>
+      </select>
+      <button onclick="loadCR()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">&#x1F504; Actualiser</button>
+    </div>
+  </div>
+  <div id="cr-stats-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+  <div id="cr-list"><div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cliquez sur l&#8217;onglet pour charger les comptes rendus</div></div>
 </div>
 
 <!-- ═══ HISTORIQUE ═══ -->
@@ -1578,6 +1607,89 @@ document.addEventListener('DOMContentLoaded', function(){
 // Exposer les fonctions appelées depuis le HTML
 window.importTableauSuivi = importTableauSuivi;
 window.importReservoir    = importReservoir;
+
+
+// ── COMPTES RENDUS ────────────────────────────────────────────
+var crData = [];
+
+function loadCR() {
+  var el = document.getElementById('cr-list');
+  if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px"><div style="width:24px;height:24px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Chargement\u2026</div>';
+  
+  callScript('getVisites', {commercial: ''})
+    .then(function(res) {
+      if (res.success) {
+        crData = (res.visites || []).filter(function(v){ return v.note && v.note.trim(); });
+        crData.sort(function(a,b){ return b.date.localeCompare(a.date); });
+        renderCR();
+      }
+    })
+    .catch(function() {
+      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);font-size:13px">\u274c Connexion impossible</div>';
+    });
+}
+
+function renderCR() {
+  var filterCom  = document.getElementById('cr-filter-com')  ? document.getElementById('cr-filter-com').value  : '';
+  var filterType = document.getElementById('cr-filter-type') ? document.getElementById('cr-filter-type').value : '';
+  
+  var list = crData.filter(function(v) {
+    if (filterCom  && v.commercial !== filterCom)  return false;
+    if (filterType && v.type_visite !== filterType) return false;
+    return true;
+  });
+
+  // Stats
+  var statsEl = document.getElementById('cr-stats-row');
+  if (statsEl) {
+    var coms = ['Mathieu','Claire','Maeva'];
+    var cols  = {'Mathieu':'#4f8ef7','Claire':'#C8000F','Maeva':'#a78bfa'};
+    statsEl.innerHTML = coms.map(function(com){
+      var cnt = crData.filter(function(v){ return v.commercial===com && v.note; }).length;
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center">'
+        +'<div style="font-size:22px;font-weight:800;color:'+cols[com]+'">'+cnt+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">'+com+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  var el = document.getElementById('cr-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">'+(crData.length?'Aucun compte rendu pour ces filtres':'Aucun compte rendu enregistr\u00e9')+'</div>';
+    return;
+  }
+
+  var COM_COLORS = {'Mathieu':'#4f8ef7','Claire':'#C8000F','Maeva':'#a78bfa'};
+  var TYPE_COLORS = {'Bilan':'#f59e0b','Perform':'#34d399','Technik':'#a78bfa','Energy':'#22d3ee','Site RR':'#f87171','Prospect':'#4f8ef7'};
+
+  el.innerHTML = list.map(function(v) {
+    var comCol  = COM_COLORS[v.commercial]  || '#8892a4';
+    var typeCol = TYPE_COLORS[v.type_visite] || '#8892a4';
+    var dateStr = v.date ? v.date.split('-').reverse().join('/') : '';
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+v.client+'</div>'
+          +'<div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">'
+            +'<span style="padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;background:rgba('+hexToRgbMgr(comCol)+',0.15);color:'+comCol+'">'+v.commercial+'</span>'
+            +'<span style="padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;background:rgba('+hexToRgbMgr(typeCol)+',0.15);color:'+typeCol+'">'+v.type_visite+'</span>'
+            +(dateStr?'<span style="font-size:10px;color:var(--muted)">'+dateStr+'</span>':'')
+          +'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap">'+escHtml(v.note)+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function hexToRgbMgr(h) {
+  var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return r+','+g+','+b;
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 </script>
 </body>
