@@ -279,8 +279,13 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
     <div class="header-right">
       <div class="badge-live"><span class="dot-live"></span><span id="date-today-lbl">—</span></div>
       <button class="btn-import" id="btn-sync" onclick="syncFromScript()">
-        🔄 Synchroniser
+        🔄 Synchroniser CRM
       </button>
+      <label class="btn-import" style="margin-top:4px;border-color:rgba(52,211,153,0.4);background:rgba(52,211,153,0.08);color:#34d399" id="btn-import-reservoir">
+        📊 Importer réservoir ERIS
+        <input type="file" accept=".xlsx,.xls" onchange="importReservoir(this)" id="input-reservoir">
+      </label>
+      <div id="reservoir-status" style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right"></div>
       <label class="btn-import" style="margin-top:4px;opacity:.6;font-size:10px">
         📥 CSV (secours)
         <input type="file" accept=".csv" onchange="importCSV(this)">
@@ -429,8 +434,8 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
 
 </div><!-- /main -->
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script>
-'use strict';
 
 // ── DONNÉES ──────────────────────────────────────────────────
 var prospects = [
@@ -1115,7 +1120,162 @@ function pushConsigneToScript(id, consigne){
   }).catch(function(e){ console.warn('Push consigne échoué :', e); });
 }
 
-// ── IMPORT CSV (secours si pas de connexion) ─────────────────
+// ── IMPORT RÉSERVOIR ERIS (depuis le manager) ─────────────────
+function importReservoir(input) {
+  var file = input.files[0]; if (!file) return;
+  var statusEl = document.getElementById('reservoir-status');
+  var btnEl    = document.getElementById('btn-import-reservoir');
+  if (statusEl) statusEl.textContent = '\u23f3 Lecture du fichier\u2026';
+  if (btnEl) btnEl.style.opacity = '.6';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb  = XLSX.read(e.target.result, {type: 'array'});
+      var wsR = wb.Sheets['Extraction r\u00e9servoir'];
+      var wsC = wb.Sheets['CA'];
+      if (!wsR) { alert('Onglet "Extraction r\u00e9servoir" non trouv\u00e9'); if(btnEl)btnEl.style.opacity='1'; return; }
+      if (!wsC) { alert('Onglet "CA" non trouv\u00e9'); if(btnEl)btnEl.style.opacity='1'; return; }
+
+      if (statusEl) statusEl.textContent = '\u23f3 Analyse r\u00e9servoir\u2026';
+
+      var rawR = XLSX.utils.sheet_to_json(wsR, {header:1, defval:null});
+      var rawC = XLSX.utils.sheet_to_json(wsC, {header:1, defval:null});
+
+      function nv(v) { try { return v!=null&&v!==''?parseFloat(v)||0:0; } catch(err){ return 0; } }
+      function sv(v) { return v!=null?String(v).replace(/'/g,'\u2019').trim():''; }
+
+      // Mapping noms ERIS -> app
+      var COM_MAP = {
+        'DEBOST Mathieu':    'Mathieu',
+        'DIMINO Ma\u00ebva': 'Maeva',
+        'DIMINO Maeva':      'Maeva',
+        'FALAISE Cindy':     'Claire',
+        'MUZY PUJOL Claire': 'Claire',
+      };
+
+      // 1. Detecter colonnes reservoir
+      var headerR = rawR[0] || [];
+      var idxR = {};
+      headerR.forEach(function(h, i) { if(h) idxR[String(h).trim()] = i; });
+
+      var colClient  = idxR['Client']             !== undefined ? idxR['Client']             : 7;
+      var colCom     = idxR['Commercial r\u00e9f\u00e9rent'] !== undefined ? idxR['Commercial r\u00e9f\u00e9rent'] : 25;
+      var colCA      = idxR['Total Vente HT - Remise 2'] !== undefined ? idxR['Total Vente HT - Remise 2'] : 21;
+      var colNature  = idxR['Nature travaux']     !== undefined ? idxR['Nature travaux']     : 18;
+      var colPrest   = idxR['Prestation']         !== undefined ? idxR['Prestation']         : 11;
+      var colSem     = idxR['N\u00b0 Sem Debut']  !== undefined ? idxR['N\u00b0 Sem Debut']  : 28;
+
+      // 2. Agreger reservoir par commercial -> client -> dossiers
+      var bycom = {Mathieu:{}, Claire:{}, Maeva:{}};
+
+      for (var i = 1; i < rawR.length; i++) {
+        var row = rawR[i]; if (!row) continue;
+        var client = sv(row[colClient]);
+        var eris   = sv(row[colCom]);
+        var com    = COM_MAP[eris];
+        if (!client || !com) continue;
+
+        var ca      = nv(row[colCA]);
+        var nature  = sv(row[colNature]);
+        var prestat = sv(row[colPrest]);
+        var sem     = sv(row[colSem]);
+
+        // Matiere
+        var matiere = '';
+        var mats = ['DEKTON','GRANIT','SILESTONE','MARBRE','QUARTZITE','CERAMIQUE','NEOLITH'];
+        for (var m = 0; m < mats.length; m++) {
+          if (nature.toUpperCase().indexOf(mats[m]) >= 0) {
+            matiere = mats[m].charAt(0) + mats[m].slice(1).toLowerCase(); break;
+          }
+        }
+        // Dept
+        var dept = '';
+        var dm = nature.match(/\/\s*(\d{2})/);
+        if (dm) dept = dm[1];
+
+        if (!bycom[com][client]) bycom[com][client] = {dossiers:[], ca_total:0};
+        bycom[com][client].dossiers.push({
+          ca: Math.round(ca*100)/100, sem:sem, prestation:prestat,
+          matiere:matiere, dept:dept, nature:nature.slice(0,80)
+        });
+        bycom[com][client].ca_total += ca;
+      }
+
+      // 3. CA 2026 depuis onglet CA (col 4 = CA 2026, col 8 = CA 2025)
+      var ca2026 = {}, ca2025 = {};
+      for (var j = 1; j < rawC.length; j++) {
+        var rc = rawC[j]; if (!rc || !rc[1]) continue;
+        var cn = sv(rc[1]); if (!cn) continue;
+        ca2026[cn] = Math.max(ca2026[cn]||0, nv(rc[4]));
+        ca2025[cn] = Math.max(ca2025[cn]||0, nv(rc[8]));
+      }
+
+      // 4. Construire payload {Mathieu:[...], Claire:[...], Maeva:[...]}
+      var payload = {Mathieu:[], Claire:[], Maeva:[]};
+      var coms = ['Mathieu','Claire','Maeva'];
+      var totalClients = 0;
+
+      for (var ci = 0; ci < coms.length; ci++) {
+        var comName = coms[ci];
+        var clients = Object.keys(bycom[comName]);
+        clients.sort(function(a,b){ return bycom[comName][b].ca_total - bycom[comName][a].ca_total; });
+        for (var ki = 0; ki < clients.length; ki++) {
+          var kname = clients[ki];
+          var kdata = bycom[comName][kname];
+          var sorted = kdata.dossiers.slice().sort(function(a,b){
+            return (a.sem||'9999').localeCompare(b.sem||'9999');
+          });
+          payload[comName].push({
+            nom:         kname,
+            reservoir:   Math.round(kdata.ca_total*100)/100,
+            ca_2026:     Math.round((ca2026[kname]||0)*100)/100,
+            ca_2025:     Math.round((ca2025[kname]||0)*100)/100,
+            nb_dossiers: kdata.dossiers.length,
+            dossiers:    sorted.slice(0,15),
+          });
+          totalClients++;
+        }
+      }
+
+      if (statusEl) statusEl.textContent = '\u23f3 Envoi vers Google Sheet (' + totalClients + ' clients)\u2026';
+
+      // 5. Envoyer vers Apps Script
+      var today = new Date().toISOString().slice(0,10);
+      fetch(SCRIPT_URL + '?action=uploadClientsData&date=' + today + '&data=' + encodeURIComponent(JSON.stringify(payload)))
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (btnEl) btnEl.style.opacity = '1';
+          if (res.success) {
+            if (statusEl) {
+              statusEl.textContent = '\u2705 ' + totalClients + ' clients sync\u00e9s \u00b7 '
+                + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+              statusEl.style.color = 'var(--green)';
+            }
+            var lbl = document.getElementById('date-today-lbl');
+            if (lbl) {
+              var orig = lbl.textContent;
+              lbl.textContent = '\u2705 R\u00e9servoir import\u00e9 \u2014 ' + totalClients + ' clients mis \u00e0 jour';
+              setTimeout(function(){lbl.textContent=orig;}, 5000);
+            }
+          } else {
+            if (statusEl) { statusEl.textContent = '\u274c ' + (res.error||'Erreur serveur'); statusEl.style.color='var(--danger)'; }
+          }
+        })
+        .catch(function(err) {
+          if (btnEl) btnEl.style.opacity = '1';
+          if (statusEl) { statusEl.textContent = '\u274c Connexion impossible'; statusEl.style.color='var(--danger)'; }
+        });
+
+    } catch(err) {
+      if (btnEl) btnEl.style.opacity = '1';
+      if (statusEl) { statusEl.textContent = '\u274c Erreur: ' + err.message; statusEl.style.color='var(--danger)'; }
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── IMPORT CSV (secours) ─────────────────────────────────────
 function importCSV(input){
   var file=input.files[0]; if(!file) return;
   var reader=new FileReader();
