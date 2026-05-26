@@ -192,9 +192,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   </div>
   <div id="form-update" style="display:none">
     <div class="card" style="margin-bottom:10px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Rechercher dans mon portefeuille</div>
-      <div class="search-wrap"><span class="search-icon">&#x1F50D;</span><input type="text" id="u-search" placeholder="Nom de l’enseigne…" oninput="filterPortfolioSaisie(this.value)" autocomplete="off"></div>
-      <div id="portfolio-saisie-list" style="max-height:200px;overflow-y:auto;margin-top:4px"></div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Rechercher un client suivi</div>
+      <div class="search-wrap"><span class="search-icon">&#x1F50D;</span><input type="text" id="u-search" placeholder="Nom du client…" oninput="filterPortfolioSaisie(this.value)" autocomplete="off"></div>
+      <div id="portfolio-saisie-list" style="max-height:240px;overflow-y:auto;margin-top:8px;-webkit-overflow-scrolling:touch"></div>
     </div>
     <div id="fiche-selected" style="display:none">
       <div class="consigne-box" id="consigne-box"><div class="consigne-lbl">&#x1F4CC; Consigne de Maxence</div><div id="consigne-txt" style="font-size:13px"></div></div>
@@ -206,6 +206,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
         <div class="field"><label>Prochaine relance</label><input type="date" id="u-relance"></div>
         <div class="field"><label>Étape suivante</label><input type="text" id="u-etape" placeholder="Prochaine action"></div>
         <button class="btn-submit" id="btn-submit-update" onclick="submitUpdate()">Enregistrer la mise à jour</button>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px">&#x270F;&#xFE0F; Compte rendu de visite</div>
+          <select id="cr-prospect-type" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;margin-bottom:8px;-webkit-appearance:none">
+            <option value="">-- Sélectionnez un type --</option>
+            <option>Prospect</option><option>Bilan</option><option>Perform</option>
+            <option>Technik</option><option>Energy</option><option>Site RR</option>
+          </select>
+          <textarea id="cr-prospect-note" placeholder="Décrivez votre visite…" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:none;height:80px;line-height:1.5;outline:none"></textarea>
+          <button id="btn-cr-prospect" onclick="saveCRProspect()" style="width:100%;padding:10px;border-radius:8px;border:none;background:rgba(79,142,247,0.15);color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px">&#x1F4C4; Enregistrer le compte rendu</button>
+        </div>
       </div>
     </div>
   </div>
@@ -316,9 +326,37 @@ function init(){
   syncClientsFromSheet();
 }
 
+
+function cleanProspect(p) {
+  // Nettoyer tous les champs - supprimer tout ce qui ressemble a une date GMT
+  function cleanStr(v) {
+    if (!v) return '';
+    var s = String(v);
+    // Si ca ressemble a une date JS complete (contient GMT ou heure d'ete), on vide
+    if (s.indexOf('GMT') >= 0 || s.indexOf('heure') >= 0 || s.length > 100) return '';
+    return s;
+  }
+  return {
+    id:                p.id               || '',
+    commercial:        p.commercial       || '',
+    entreprise:        cleanStr(p.entreprise),
+    ville:             cleanStr(p.ville),
+    dept:              cleanStr(p.dept),
+    source:            cleanStr(p.source),
+    statut:            cleanStr(p.statut) || 'À contacter',
+    commentaires:      cleanStr(p.commentaires),
+    derniere_action:   cleanStr(p.derniere_action),
+    prochaine_relance: (p.prochaine_relance && String(p.prochaine_relance).match(/^\d{4}-\d{2}-\d{2}$/)) ? p.prochaine_relance : '',
+    etape_suivante:    cleanStr(p.etape_suivante),
+    date_creation:     '',
+    nb_actions:        p.nb_actions || 0,
+    consigne_manager:  cleanStr(p.consigne_manager),
+  };
+}
+
 function loadProspects(){
   api({action:'getProspects',commercial:CONFIG.commercial})
-    .then(function(res){if(res.success){prospects=res.prospects||[];renderHome();renderStats();}})
+    .then(function(res){if(res.success){prospects=(res.prospects||[]).map(cleanProspect);renderHome();renderStats();}})
     .catch(function(){prospects=[];renderHome();});
 }
 
@@ -358,12 +396,33 @@ function setMode(m){
 }
 function filterPortfolioSaisie(v){renderPortfolioSaisie(v);}
 function renderPortfolioSaisie(search){
-  var list=activeProspects().filter(function(p){return !search||p.entreprise.toLowerCase().indexOf(search.toLowerCase())>=0;});
+  var list=activeProspects().filter(function(p){
+    return !search||p.entreprise.toLowerCase().indexOf(search.toLowerCase())>=0;
+  });
   var el=document.getElementById('portfolio-saisie-list');if(!el)return;
-  if(!list.length){el.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">Aucun résultat</div>';return;}
-  el.innerHTML=list.map(function(p){var sel=p.id===selectedId;return '<div class="list-item'+(sel?' selected':'')+'" onclick="selectForUpdate('+p.id+')">'+'<div class="li-main"><div class="li-title">'+p.entreprise+'</div><div class="li-sub">'+p.ville+'</div></div>'+'<div class="li-right"><span class="statut '+statutClass(p.statut)+'">'+p.statut+'</span>'+(p.prochaine_relance?'<span style="font-size:10px;color:var(--muted)">'+fmtDate(p.prochaine_relance)+'</span>':'')+'</div></div>';}).join('');
+  if(!list.length){
+    el.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">Aucun r\u00e9sultat</div>';
+    return;
+  }
+  el.innerHTML=list.map(function(p){
+    var sel=p.id===selectedId;
+    var ville=p.ville&&typeof p.ville==='string'?p.ville:'';
+    var dept=p.dept&&typeof p.dept==='string'&&p.dept?' \u00b7 '+p.dept:'';
+    var sub=ville?ville+dept:'';
+    return '<div class="list-item'+(sel?' selected':'')+'" onclick="selectForUpdate(\''+p.id+'\',event)" style="border-radius:10px;margin-bottom:6px">'
+      +'<div class="li-main">'
+        +'<div class="li-title" style="font-size:13px;font-weight:700">'+p.entreprise+'</div>'
+        +(sub?'<div class="li-sub" style="font-size:11px;margin-top:2px">'+sub+'</div>':'')
+      +'</div>'
+      +'<div class="li-right" style="gap:4px">'
+        +'<span class="statut '+statutClass(p.statut)+'">'+p.statut+'</span>'
+        +(p.prochaine_relance&&typeof p.prochaine_relance==='string'?'<span style="font-size:10px;color:var(--muted)">'+fmtDate(p.prochaine_relance)+'</span>':'')
+      +'</div>'
+    +'</div>';
+  }).join('');
 }
-function selectForUpdate(id){
+
+function selectForUpdate(id,evt){
   selectedId=id;var p=prospects.find(function(x){return x.id===id;});if(!p)return;
   renderPortfolioSaisie(document.getElementById('u-search').value||'');
   document.getElementById('fiche-title').textContent=p.entreprise+' · '+p.ville;
@@ -384,7 +443,7 @@ function submitNew(){
   var ent=document.getElementById('n-ent').value.trim();if(!ent){document.getElementById('n-ent').focus();return;}
   var btn=document.getElementById('btn-submit-new');btn.disabled=true;btn.textContent='Envoi…';
   var data={action:'addProspect',commercial:CONFIG.commercial,entreprise:ent,ville:document.getElementById('n-ville').value.trim(),dept:document.getElementById('n-dept').value.trim(),source:document.getElementById('n-source').value,commentaires:document.getElementById('n-commentaire').value.trim(),prochaine_relance:document.getElementById('n-relance').value,etape_suivante:document.getElementById('n-etape').value.trim(),statut:'À contacter'};
-  api(data).then(function(res){btn.disabled=false;btn.textContent='Enregistrer le prospect';if(res.success){data.id=res.id;data.nb_actions=1;prospects.push(data);['n-ent','n-ville','n-dept','n-relance','n-etape','n-commentaire'].forEach(function(id){document.getElementById(id).value='';});showSuccess('&#x2713;','Prospect ajouté !',ent+' ajouté à votre pipeline.');}else{showError(res.error||'Erreur');}}). catch(function(){btn.disabled=false;btn.textContent='Enregistrer le prospect';showError('Connexion impossible');});
+  api(data).then(function(res){btn.disabled=false;btn.textContent='Enregistrer le prospect';if(res.success){data.id=res.id;data.nb_actions=1;prospects.push(cleanProspect(data));['n-ent','n-ville','n-dept','n-relance','n-etape','n-commentaire'].forEach(function(id){document.getElementById(id).value='';});showSuccess('&#x2713;','Prospect ajouté !',ent+' ajouté à votre pipeline.');}else{showError(res.error||'Erreur');}}). catch(function(){btn.disabled=false;btn.textContent='Enregistrer le prospect';showError('Connexion impossible');});
 }
 function submitUpdate(){
   if(!selectedId)return;
@@ -415,7 +474,7 @@ function renderClientsKPI(){
   var pctV=vTheo?Math.round(vReal/vTheo*100):0;
   var el=document.getElementById('clients-kpi-row');
   if(el)el.innerHTML=[
-    {color:'red',  lbl:'CA 2026',         val:fmtM(ca26),  sub:(delta>=0?'▲ +':'▼ ')+Math.abs(delta).toFixed(1)+'% vs 2025'},
+    {color:'red',  lbl:'CA 2026',         val:fmtM(ca26),  sub:'<span style="color:'+(delta>=0?'#34d399':'#f87171')+';font-weight:700">'+(delta>=0?'▲ +':'▼ ')+Math.abs(delta).toFixed(1)+'%</span> vs 2025'},
     {color:'amber',lbl:'% Objectif',      val:pctObj+'%',  sub:'Obj. '+fmtM(obj)},
     {color:'teal', lbl:'Réservoir',  val:fmtM(res),   sub:'Commandes en cours'},
     {color:'blue', lbl:'Visites',         val:vReal+'/'+Math.round(vTheo), sub:pctV+'% du théorique'},
@@ -684,6 +743,28 @@ function syncClientsFromSheet() {
   if (btn) btn.textContent = '\ud83d\udce5 Tableau Excel';
 }
 
+function saveCRProspect() {
+  if (!selectedId) return;
+  var type = document.getElementById('cr-prospect-type').value;
+  var note = document.getElementById('cr-prospect-note').value.trim();
+  if (!type || !note) { showError('Sélectionnez un type et rédigez votre compte rendu'); return; }
+  var p = prospects.find(function(x){ return x.id === selectedId; });
+  var clientNom = p ? p.entreprise : selectedId;
+  var btn = document.getElementById('btn-cr-prospect');
+  if (btn) { btn.textContent = '⏳ Envoi…'; btn.disabled = true; }
+  api({action:'addVisite', commercial:CONFIG.commercial, client:clientNom, type_visite:type, note:note})
+    .then(function(){
+      if (btn) { btn.textContent = '✅ Compte rendu enregistré'; }
+      document.getElementById('cr-prospect-note').value = '';
+      document.getElementById('cr-prospect-type').value = '';
+      setTimeout(function(){ if(btn){btn.textContent='?? Enregistrer le compte rendu';btn.disabled=false;} }, 2500);
+    })
+    .catch(function(){
+      if (btn) { btn.textContent = '?? Enregistrer le compte rendu'; btn.disabled = false; }
+      showError('Connexion impossible');
+    });
+}
+
 function goPage(name,btn){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
@@ -697,6 +778,7 @@ window.goPage=goPage;
 window.setClientsFilter=setClientsFilter;
 window.toggleVisite=toggleVisite;
 window.saveCR=saveCR;
+window.saveCRProspect=saveCRProspect;
 window.cancelCR=cancelCR;
 window.toggleVisite=toggleVisite;
 window.importClientsXLSX=importClientsXLSX;
