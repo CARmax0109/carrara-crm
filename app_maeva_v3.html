@@ -713,8 +713,12 @@ function loadAgenda(){
           return r.id && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/)
             && r.date>'1900-01-01' && r.client;
         });
-        agendaData = fresh;
-        try { localStorage.setItem('agenda_'+CONFIG.commercial, JSON.stringify(agendaData)); } catch(e){}
+        // Ne remplacer le cache que si on reçoit des données
+        // (évite d'écraser avec un tableau vide si Sheet répond avant l'enregistrement)
+        if (fresh.length > 0 || agendaData.length === 0) {
+          agendaData = fresh;
+          try { localStorage.setItem('agenda_'+CONFIG.commercial, JSON.stringify(agendaData)); } catch(e){}
+        }
         renderAgenda();
         renderHome();
       }
