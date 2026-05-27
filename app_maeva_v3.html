@@ -423,33 +423,71 @@ function setMode(m){
 }
 function filterPortfolioSaisie(v){renderPortfolioSaisie(v);}
 function renderPortfolioSaisie(search){
-  var list=activeProspects().filter(function(p){
-    return !search||p.entreprise.toLowerCase().indexOf(search.toLowerCase())>=0;
-  });
   var el=document.getElementById('portfolio-saisie-list');if(!el)return;
-  if(!list.length){
+  var q=search?search.toLowerCase():'';
+
+  var prospectItems=activeProspects().filter(function(p){
+    return !q||p.entreprise.toLowerCase().indexOf(q)>=0;
+  });
+  var clientItems=clientsData.filter(function(c){
+    return !q||c.nom.toLowerCase().indexOf(q)>=0;
+  });
+
+  if(!prospectItems.length&&!clientItems.length){
     el.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px">Aucun r\u00e9sultat</div>';
     return;
   }
-  el.innerHTML=list.map(function(p){
-    var sel=p.id===selectedId;
-    var ville=p.ville&&typeof p.ville==='string'?p.ville:'';
-    var dept=p.dept&&typeof p.dept==='string'&&p.dept?' \u00b7 '+p.dept:'';
-    var sub=ville?ville+dept:'';
-    return '<div class="list-item'+(sel?' selected':'')+'" onclick="selectForUpdate(\''+p.id+'\',event)" style="border-radius:10px;margin-bottom:6px">'
-      +'<div class="li-main">'
-        +'<div class="li-title" style="font-size:13px;font-weight:700">'+p.entreprise+'</div>'
-        +(sub?'<div class="li-sub" style="font-size:11px;margin-top:2px">'+sub+'</div>':'')
-      +'</div>'
-      +'<div class="li-right" style="gap:4px">'
-        +'<span class="statut '+statutClass(p.statut)+'">'+p.statut+'</span>'
+
+  var html='';
+  if(prospectItems.length){
+    html+='<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:6px 4px 4px">Prospects ('+prospectItems.length+')</div>';
+    prospectItems.forEach(function(p){
+      var sel=p.id===selectedId;
+      var ville=p.ville&&typeof p.ville==='string'?p.ville:'';
+      html+='<div class="list-item'+(sel?' selected':'')+'" onclick="selectForUpdate(\''+p.id+'\',\'prospect\')" style="border-radius:10px;margin-bottom:6px">'
+        +'<div class="li-main"><div class="li-title" style="font-size:13px;font-weight:700">'+p.entreprise+'</div>'
+        +(ville?'<div class="li-sub" style="font-size:11px;margin-top:2px">'+ville+'</div>':'')
+        +'</div>'
+        +'<div class="li-right" style="gap:4px"><span class="statut '+statutClass(p.statut)+'">'+p.statut+'</span>'
         +(p.prochaine_relance&&typeof p.prochaine_relance==='string'?'<span style="font-size:10px;color:var(--muted)">'+fmtDate(p.prochaine_relance)+'</span>':'')
-      +'</div>'
-    +'</div>';
-  }).join('');
+        +'</div></div>';
+    });
+  }
+  if(clientItems.length){
+    html+='<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:6px 4px 4px;margin-top:4px">Clients suivis ('+clientItems.length+')</div>';
+    clientItems.forEach(function(c){
+      var cid='client_'+c.nom.replace(/'/g,'');
+      var sel=cid===selectedId;
+      html+='<div class="list-item'+(sel?' selected':'')+'" onclick="selectForUpdate(\''+cid+'\',\'client\')" style="border-radius:10px;margin-bottom:6px">'
+        +'<div class="li-main"><div class="li-title" style="font-size:13px;font-weight:700">'+c.nom+'</div>'
+        +'<div class="li-sub" style="font-size:11px;margin-top:2px">'+fmtK(c.ca_2026||0)+' CA 2026</div>'
+        +'</div>'
+        +'<div class="li-right"><span class="statut" style="background:rgba(34,211,238,0.15);color:#22d3ee;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700">Client suivi</span></div>'
+        +'</div>';
+    });
+  }
+  el.innerHTML=html;
 }
 
-function selectForUpdate(id,evt){
+
+function selectForUpdate(id,type){
+  selectedId=id;
+  renderPortfolioSaisie(document.getElementById('u-search').value||'');
+
+  if(type==='client'){
+    var nomClient=id.replace('client_','');
+    var c=clientsData.find(function(x){return x.nom===nomClient||('client_'+x.nom.replace(/'/g,''))===id;});
+    if(!c)return;
+    document.getElementById('fiche-title').textContent=c.nom;
+    document.getElementById('u-statut').value='En cours';
+    document.getElementById('u-relance').value='';
+    document.getElementById('u-etape').value='';
+    document.getElementById('u-action').value='';
+    var cb=document.getElementById('consigne-box');if(cb)cb.className='consigne-box';
+    document.getElementById('fiche-selected').style.display='block';
+    document.getElementById('fiche-selected').scrollIntoView({behavior:'smooth',block:'nearest'});
+    return;
+  }
   selectedId=id;var p=prospects.find(function(x){return x.id===id;});if(!p)return;
   renderPortfolioSaisie(document.getElementById('u-search').value||'');
   document.getElementById('fiche-title').textContent=p.entreprise+' · '+p.ville;
@@ -474,6 +512,7 @@ function submitNew(){
 }
 function submitUpdate(){
   if(!selectedId)return;
+  if(selectedId.indexOf('client_')===0){saveCRProspect();return;}
   var action=document.getElementById('u-action').value.trim();if(!action){document.getElementById('u-action').focus();return;}
   var btn=document.getElementById('btn-submit-update');btn.disabled=true;btn.textContent='Envoi…';
   var upd={action:'updateProspect',id:selectedId,commercial:CONFIG.commercial,derniere_action:action,commentaires:action,statut:document.getElementById('u-statut').value,prochaine_relance:document.getElementById('u-relance').value,etape_suivante:document.getElementById('u-etape').value.trim()};
