@@ -1348,11 +1348,16 @@ function importTableauSuivi(input) {
       var si2 = document.getElementById('suivi-sync-info');
       if (si2) si2.textContent = totalClients + ' clients \u00b7 donn\u00e9es du ' + syncDate.split('-').reverse().join('/');
 
-      // Rafraichir l'onglet suivi si ouvert
-      if (document.getElementById('pane-suivi-clients').classList.contains('active')) {
-        renderSuiviKPIComs();
-        renderSuiviClients();
-      }
+      // Marquer que les données sont prêtes (sera rendu quand l'onglet s'ouvre)
+      window._suiviReady = true;
+      // Rafraichir immédiatement si l'onglet est déjà ouvert
+      try {
+        if (document.getElementById('pane-suivi-clients') &&
+            document.getElementById('pane-suivi-clients').classList.contains('active')) {
+          renderSuiviKPIComs();
+          renderSuiviClients();
+        }
+      } catch(e) {}
 
       // Envoi vers Google Sheet en arrière-plan (non bloquant)
       var CHUNK_SIZE = 10;
