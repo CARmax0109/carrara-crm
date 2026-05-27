@@ -677,15 +677,52 @@ function importClientsXLSX(input){
 }
 
 function loadAgenda(){
-  api({action:'getAgenda',commercial:CONFIG.commercial})
-    .then(function(res){if(res.success){
-        agendaData=(res.agenda||[]).filter(function(r){
-          return r.id && r.id!=='undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date>'1900-01-01';
+  // 1. Afficher le cache immédiatement (pas de flash de disparition)
+  try {
+    var cached = localStorage.getItem('agenda_'+CONFIG.commercial);
+    if (cached) {
+      var parsed = JSON.parse(cached);
+      var valid  = parsed.filter(function(r){
+        return r.id && r.id!=='undefined'
+          && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/)
+          && r.date>'1900-01-01' && r.client && r.client!=='undefined';
+      });
+      if (valid.length > 0) {
+        agendaData = valid;
+        renderAgenda();
+        renderHome();
+      }
+    }
+  } catch(e){}
+
+  // 2. Synchroniser en arrière-plan avec Google Sheet
+  api({action:'getAgenda', commercial:CONFIG.commercial})
+    .then(function(res){
+      if (res.success) {
+        var fresh = (res.agenda||[]).map(function(r){
+          var d = r.date||'';
+          if(d.indexOf('GMT')>=0||d.indexOf('1899')>=0) d='';
+          return {
+            id:r.id||'', commercial:r.commercial||'',
+            date:d, heure:(r.heure&&r.heure!=='undefined')?r.heure:'',
+            client:(r.client&&r.client!=='undefined')?r.client:'',
+            note:(r.note&&r.note!=='undefined')?r.note:'',
+            type_visite:(r.type_visite&&r.type_visite!=='undefined')?r.type_visite:'',
+          };
+        }).filter(function(r){
+          return r.id && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/)
+            && r.date>'1900-01-01' && r.client;
         });
-        // Sauvegarder en cache local
+        agendaData = fresh;
         try { localStorage.setItem('agenda_'+CONFIG.commercial, JSON.stringify(agendaData)); } catch(e){}
-        renderAgenda();renderHome();
-      }}). catch(function(){agendaData=[];renderAgenda();});
+        renderAgenda();
+        renderHome();
+      }
+      // Si pas de succès → garder le cache local (ne pas vider)
+    })
+    .catch(function(){
+      // Connexion impossible → garder le cache local, ne rien changer
+    });
 }
 function openAddRDV(){var f=document.getElementById('form-rdv');f.style.display='block';document.getElementById('rdv-date').value=TODAY;f.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function closeAddRDV(){document.getElementById('form-rdv').style.display='none';['rdv-date','rdv-heure','rdv-client','rdv-note'].forEach(function(id){document.getElementById(id).value='';}); }
