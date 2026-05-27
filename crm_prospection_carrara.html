@@ -1348,16 +1348,10 @@ function importTableauSuivi(input) {
       var si2 = document.getElementById('suivi-sync-info');
       if (si2) si2.textContent = totalClients + ' clients \u00b7 donn\u00e9es du ' + syncDate.split('-').reverse().join('/');
 
-      // Marquer que les données sont prêtes (sera rendu quand l'onglet s'ouvre)
+      // Marquer données prêtes + toujours préparer pour affichage immédiat
       window._suiviReady = true;
-      // Rafraichir immédiatement si l'onglet est déjà ouvert
-      try {
-        if (document.getElementById('pane-suivi-clients') &&
-            document.getElementById('pane-suivi-clients').classList.contains('active')) {
-          renderSuiviKPIComs();
-          renderSuiviClients();
-        }
-      } catch(e) {}
+      try { renderSuiviKPIComs(); } catch(e) {}
+      try { renderSuiviClients(); } catch(e) {}
 
       // Envoi vers Google Sheet via JSONP (contourne CORS)
       var CHUNK_SIZE = 8;
@@ -1954,7 +1948,9 @@ function renderSuiviClients() {
   if (!tbody) return;
 
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">'+(suiviData.length?'Aucun client trouv\u00e9':'Importez le tableau de suivi')+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">'
+      +(suiviData.length?'Aucun client trouvé ('+suiviData.length+' en mémoire)':'Importez le tableau de suivi')
+      +'</td></tr>';
     return;
   }
 
