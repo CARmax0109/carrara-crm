@@ -651,7 +651,12 @@ function importClientsXLSX(input){
 
 function loadAgenda(){
   api({action:'getAgenda',commercial:CONFIG.commercial})
-    .then(function(res){if(res.success){agendaData=res.agenda||[];renderAgenda();renderHome();}}). catch(function(){agendaData=[];renderAgenda();});
+    .then(function(res){if(res.success){
+        agendaData=(res.agenda||[]).filter(function(r){
+          return r.id && r.id!=='undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date>'1900-01-01';
+        });
+        renderAgenda();renderHome();
+      }}). catch(function(){agendaData=[];renderAgenda();});
 }
 function openAddRDV(){var f=document.getElementById('form-rdv');f.style.display='block';document.getElementById('rdv-date').value=TODAY;f.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function closeAddRDV(){document.getElementById('form-rdv').style.display='none';['rdv-date','rdv-heure','rdv-client','rdv-note'].forEach(function(id){document.getElementById(id).value='';}); }
@@ -662,11 +667,17 @@ function saveRDV(){
   var rdv={action:'addRDV',commercial:CONFIG.commercial,date:date,heure:document.getElementById('rdv-heure').value,client:client,type_visite:document.getElementById('rdv-type').value,note:document.getElementById('rdv-note').value.trim()};
   api(rdv).then(function(res){btn.disabled=false;btn.textContent='Enregistrer le RDV';if(res.success){rdv.id=res.id;agendaData.push(rdv);agendaData.sort(function(a,b){return a.date.localeCompare(b.date);});renderAgenda();renderHome();closeAddRDV();showSuccess('&#x1F4C5;','RDV ajouté !',client+' · '+fmtDate(date));}else{showError(res.error||'Erreur');}}). catch(function(){btn.disabled=false;btn.textContent='Enregistrer le RDV';showError('Connexion impossible');});
 }
-function deleteRDV(id){api({action:'deleteRDV',id:id}).then(function(res){if(res.success){agendaData=agendaData.filter(function(r){return r.id!==id;});renderAgenda();renderHome();}}). catch(function(){showError('Connexion impossible');});}
+function deleteRDV(id){
+  if(!id||id==='undefined'){renderAgenda();return;}
+  api({action:'deleteRDV',id:id}).then(function(res){if(res.success){agendaData=agendaData.filter(function(r){return r.id!==id;});renderAgenda();renderHome();}}). catch(function(){showError('Connexion impossible');});}
 function renderAgenda(){
   var el=document.getElementById('agenda-content');if(!el)return;
-  var future=agendaData.filter(function(r){return r.date>=TODAY;}).sort(function(a,b){return a.date.localeCompare(b.date);});
-  var past=agendaData.filter(function(r){return r.date<TODAY;}).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,5);
+  // Filtrer les RDV valides uniquement (date au format YYYY-MM-DD, id défini)
+  var validRDV = agendaData.filter(function(r){
+    return r.id && r.id !== 'undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date > '1900-01-01';
+  });
+  var future=validRDV.filter(function(r){return r.date>=TODAY;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+  var past=validRDV.filter(function(r){return r.date<TODAY;}).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,5);
   if(!future.length&&!past.length){el.innerHTML='<div class="empty"><div class="empty-icon">&#x1F50D;</div>Aucun RDV — appuyez sur + pour en ajouter</div>';return;}
   var months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   function card(r){
