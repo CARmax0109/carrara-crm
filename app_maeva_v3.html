@@ -665,7 +665,7 @@ function saveRDV(){
   if(!date||!client){if(!client)document.getElementById('rdv-client').focus();return;}
   var btn=document.getElementById('btn-add-rdv');btn.disabled=true;btn.textContent='Envoi…';
   var rdv={action:'addRDV',commercial:CONFIG.commercial,date:date,heure:document.getElementById('rdv-heure').value,client:client,type_visite:document.getElementById('rdv-type').value,note:document.getElementById('rdv-note').value.trim()};
-  api(rdv).then(function(res){btn.disabled=false;btn.textContent='Enregistrer le RDV';if(res.success){rdv.id=res.id;agendaData.push(rdv);agendaData.sort(function(a,b){return a.date.localeCompare(b.date);});renderAgenda();renderHome();closeAddRDV();showSuccess('??','RDV ajouté !',client+' · '+fmtDate(date));}else{showError(res.error||'Erreur');}}). catch(function(){btn.disabled=false;btn.textContent='Enregistrer le RDV';showError('Connexion impossible');});
+  api(rdv).then(function(res){btn.disabled=false;btn.textContent='Enregistrer le RDV';if(res.success){rdv.id=res.id;agendaData.push(rdv);agendaData.sort(function(a,b){return a.date.localeCompare(b.date);});renderAgenda();renderHome();closeAddRDV();showSuccess('✓','RDV ajouté !',client+' · '+fmtDate(date));}else{showError(res.error||'Erreur');}}). catch(function(){btn.disabled=false;btn.textContent='Enregistrer le RDV';showError('Connexion impossible');});
 }
 function deleteRDV(id){
   if(!id||id==='undefined'){renderAgenda();return;}
