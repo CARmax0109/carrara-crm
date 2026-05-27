@@ -304,6 +304,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
   <button class="tab-btn" onclick="goTab('historique',this)">Historique</button>
   <button class="tab-btn" onclick="goTab('form-guide',this)">Guide Form</button>
   <button class="tab-btn" onclick="goTab('comptes-rendus',this)">&#x1F4DD; Comptes rendus</button>
+  <button class="tab-btn" onclick="goTab('suivi-clients',this)">&#x1F4CA; Suivi clients</button>
 </div>
 
 <div class="main">
@@ -404,6 +405,61 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
       <div class="card-sub">Pour chaque onglet commercial individuel</div>
     </div></div>
     <div id="sheets-guide-content"></div>
+  </div>
+</div>
+
+<div id="pane-suivi-clients" class="tab-pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:14px;font-weight:700">Suivi portefeuille clients</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px" id="suivi-sync-info">Importé depuis le tableau de suivi</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="suivi-filter-com" onchange="renderSuiviClients()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les commerciaux</option>
+        <option>Mathieu</option>
+        <option>Claire</option>
+        <option>Maeva</option>
+      </select>
+      <select id="suivi-filter-statut" onchange="renderSuiviClients()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous</option>
+        <option value="recul">En recul</option>
+        <option value="progression">En progression</option>
+        <option value="non_visite">Non visités</option>
+      </select>
+      <input type="text" id="suivi-search" placeholder="Rechercher un client…" oninput="renderSuiviClients()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;min-width:160px">
+    </div>
+  </div>
+
+  <!-- KPIs par commercial -->
+  <div class="grid3" id="suivi-kpi-coms" style="margin-bottom:14px"></div>
+
+  <!-- Alertes -->
+  <div id="suivi-alertes" style="display:none;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--danger);margin-bottom:8px">?? Clients en fort recul (≥30%)</div>
+    <div id="suivi-alertes-list"></div>
+  </div>
+
+  <!-- Table clients -->
+  <div class="card">
+    <div class="table-wrap">
+      <table id="suivi-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Commercial</th>
+            <th>CA 2026</th>
+            <th>CA 2025</th>
+            <th>Évolution</th>
+            <th>Réservoir</th>
+            <th>Objectif</th>
+            <th>% Obj.</th>
+            <th>Visites</th>
+          </tr>
+        </thead>
+        <tbody id="suivi-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1720,6 +1776,139 @@ function hexToRgbMgr(h) {
 }
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
+// ── SUIVI CLIENTS (données tableau de suivi importé) ─────────
+var suiviData = [];
+
+function loadSuiviClients() {
+  var infoEl = document.getElementById('suivi-sync-info');
+  if (infoEl) infoEl.textContent = 'Chargement\u2026';
+
+  callScript('getClientsData', {commercial:''})
+    .then(function(res) {
+      if (res.success && res.clients && res.clients.length > 0) {
+        suiviData = res.clients;
+        if (infoEl && res.clients[0] && res.clients[0].sync_date) {
+          infoEl.textContent = res.clients.length + ' clients \u00b7 donn\u00e9es du '
+            + res.clients[0].sync_date.split('-').reverse().join('/');
+        }
+        renderSuiviKPIComs();
+        renderSuiviClients();
+      } else {
+        if (infoEl) infoEl.textContent = 'Aucune donn\u00e9e \u2014 importez le tableau de suivi';
+        var tbody = document.getElementById('suivi-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Importez le tableau de suivi depuis le bouton en haut \u00e0 droite</td></tr>';
+      }
+    })
+    .catch(function() {
+      if (infoEl) infoEl.textContent = 'Connexion impossible';
+    });
+}
+
+function renderSuiviKPIComs() {
+  var el = document.getElementById('suivi-kpi-coms'); if (!el) return;
+  var coms = ['Mathieu','Claire','Maeva'];
+  var cols = {Mathieu:'#4f8ef7', Claire:'#C8000F', Maeva:'#a78bfa'};
+  el.innerHTML = coms.map(function(com) {
+    var list = suiviData.filter(function(c){ return c.commercial === com; });
+    if (!list.length) return '';
+    var ca26  = list.reduce(function(s,c){ return s+(c.ca_2026||0); }, 0);
+    var ca25  = list.reduce(function(s,c){ return s+(c.ca_2025_cumul||0); }, 0);
+    var obj   = list.reduce(function(s,c){ return s+(c.objectif||0); }, 0);
+    var res   = list.reduce(function(s,c){ return s+(c.reservoir||0); }, 0);
+    var pctObj= obj ? Math.round(ca26/obj*100) : 0;
+    var delta = ca25 ? ((ca26-ca25)/ca25*100) : 0;
+    var bCol  = pctObj>=80?'#34d399':pctObj>=50?'#f59e0b':'#f87171';
+    var dCol  = delta>=0?'#34d399':'#f87171';
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+cols[com]+';border-radius:12px;padding:14px">'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:10px;color:'+cols[com]+'">'+com
+        +' <span style="font-size:10px;font-weight:500;color:var(--muted)">'+list.length+' clients</span></div>'
+      +'<div style="display:flex;gap:14px;flex-wrap:wrap">'
+        +'<div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">CA 2026</div>'
+          +'<div style="font-size:16px;font-weight:800">'+fmtK(ca26)+'</div>'
+          +'<div style="font-size:10px;color:'+dCol+';font-weight:600">'+(delta>=0?'\u25b2 +':'\u25bc ')+Math.abs(delta).toFixed(1)+'% vs 2025</div></div>'
+        +'<div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Objectif</div>'
+          +'<div style="font-size:16px;font-weight:800">'+pctObj+'%</div>'
+          +'<div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:4px;width:60px"><div style="height:100%;width:'+Math.min(100,pctObj)+'%;background:'+bCol+'"></div></div></div>'
+        +'<div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">R\u00e9servoir</div>'
+          +'<div style="font-size:16px;font-weight:800;color:#22d3ee">'+fmtK(res)+'</div></div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function renderSuiviClients() {
+  var fc = (document.getElementById('suivi-filter-com')    || {}).value || '';
+  var fs = (document.getElementById('suivi-filter-statut') || {}).value || '';
+  var fq = ((document.getElementById('suivi-search')       || {}).value || '').toLowerCase();
+
+  var list = suiviData.filter(function(c) {
+    if (fc && c.commercial !== fc) return false;
+    if (fq && c.nom.toLowerCase().indexOf(fq) < 0) return false;
+    var ep = parseEvol(c.evolution);
+    if (fs === 'recul')      return ep !== null && ep <= -30;
+    if (fs === 'progression') return ep !== null && ep > 0;
+    if (fs === 'non_visite')  return (c.visites_total||0) === 0;
+    return true;
+  });
+
+  // Alertes clients en fort recul
+  var alertes = suiviData.filter(function(c){
+    var ep = parseEvol(c.evolution);
+    return ep !== null && ep <= -30 && (c.ca_2025_cumul||0) > 1000;
+  }).sort(function(a,b){ return parseEvol(a.evolution)-parseEvol(b.evolution); }).slice(0,6);
+
+  var alertEl = document.getElementById('suivi-alertes');
+  var alertList = document.getElementById('suivi-alertes-list');
+  if (alertEl) alertEl.style.display = alertes.length ? 'block' : 'none';
+  if (alertList) alertList.innerHTML = alertes.map(function(c){
+    var ep = parseEvol(c.evolution);
+    var com = c.commercial;
+    var comCol = {Mathieu:'#4f8ef7',Claire:'#C8000F',Maeva:'#a78bfa'}[com]||'#8892a4';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:9px 12px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:8px;margin-bottom:6px">'
+      +'<div style="flex:1;font-size:12px;font-weight:600">'+c.nom+'</div>'
+      +'<span style="padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;background:rgba('+hexToRgbMgr(comCol)+',0.15);color:'+comCol+'">'+com+'</span>'
+      +'<span style="font-size:12px;font-weight:700;color:#f87171">'+c.evolution+'</span>'
+      +'<span style="font-size:11px;color:var(--muted)">'+fmtK(c.ca_2026||0)+'</span>'
+    +'</div>';
+  }).join('');
+
+  var tbody = document.getElementById('suivi-tbody');
+  if (!tbody) return;
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">'+(suiviData.length?'Aucun client trouv\u00e9':'Importez le tableau de suivi')+'</td></tr>';
+    return;
+  }
+
+  var COM_COLS = {Mathieu:'#4f8ef7',Claire:'#C8000F',Maeva:'#a78bfa'};
+  tbody.innerHTML = list.map(function(c) {
+    var ep     = parseEvol(c.evolution);
+    var eCol   = ep===null?'var(--muted)':ep>0?'#34d399':'#f87171';
+    var eIcon  = ep===null?'':ep>0?'\u25b2 ':'\u25bc ';
+    var pO     = c.objectif ? Math.min(100,Math.round((c.ca_2026||0)/c.objectif*100)) : 0;
+    var bCol   = pO>=80?'#34d399':pO>=50?'#f59e0b':'#f87171';
+    var comCol = COM_COLS[c.commercial] || '#8892a4';
+    var visStr = (c.visites_total||0)+'/'+(c.visites_theoriques||0);
+    return '<tr>'
+      +'<td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.nom+'</td>'
+      +'<td><span style="padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;background:rgba('+hexToRgbMgr(comCol)+',0.15);color:'+comCol+'">'+c.commercial+'</span></td>'
+      +'<td style="font-weight:700">'+fmtK(c.ca_2026||0)+'</td>'
+      +'<td style="color:var(--muted)">'+fmtK(c.ca_2025_cumul||0)+'</td>'
+      +'<td style="color:'+eCol+';font-weight:700">'+(c.evolution?eIcon+c.evolution:'—')+'</td>'
+      +'<td style="color:#22d3ee">'+fmtK(c.reservoir||0)+'</td>'
+      +'<td style="color:var(--muted)">'+fmtK(c.objectif||0)+'</td>'
+      +'<td><span style="color:'+bCol+';font-weight:700">'+pO+'%</span></td>'
+      +'<td>'+visStr+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function parseEvol(e) {
+  if (!e || e === '--') return null;
+  return parseFloat(e.replace('%','').replace(',','.').trim());
 }
 
 </script>
