@@ -1813,6 +1813,13 @@ function escHtml(s) {
 
 
 // ── SUIVI CLIENTS (données tableau de suivi importé) ─────────
+function fmtK(v) {
+  if (!v) return '--';
+  if (v >= 1000000) return (v/1000000).toFixed(2) + 'M€';
+  if (v >= 1000)    return (v/1000).toFixed(0) + 'k€';
+  return Math.round(v) + '€';
+}
+
 var suiviData = [];
 
 function loadSuiviClients() {
