@@ -718,31 +718,53 @@ function renderStats(){
 
 function syncClientsFromSheet() {
   var btn = document.getElementById('btn-sync-clients');
-  try {
-    var raw = localStorage.getItem('carrara_clients_data');
-    if (!raw) {
-      if (btn) btn.textContent = '\ud83d\udce5 Tableau Excel';
-      var si = document.getElementById('sync-date-info');
-      if (si) si.textContent = 'Importez le tableau depuis le dashboard manager';
-      return;
-    }
-    var payload = JSON.parse(raw);
-    var myClients = (payload.data || {})[CONFIG.commercial] || [];
-    if (myClients.length > 0) {
-      myClients.forEach(function(nc) {
-        var ex = clientsData.find(function(c){ return c.nom === nc.nom; });
-        nc.visites_saisies = ex ? (ex.visites_saisies || {}) : {};
-      });
-      clientsData = myClients;
-      renderClientsKPI();
-      renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
-      var si = document.getElementById('sync-date-info');
-      if (si && payload.sheet) si.textContent = 'Donn\u00e9es ' + payload.sheet + ' \u00b7 ' + (payload.date||'').split('-').reverse().join('/');
-    }
-  } catch(e) { console.warn('Sync:', e.message); }
-  if (btn) btn.textContent = '\ud83d\udce5 Tableau Excel';
-}
+  var si  = document.getElementById('sync-date-info');
+  if (btn) { btn.textContent = '\u23f3 Sync\u2026'; btn.disabled = true; }
 
+  // Lire depuis Google Sheet (fonctionne aussi en PWA iOS)
+  api({action:'getClientsData', commercial:CONFIG.commercial})
+    .then(function(res) {
+      if (btn) { btn.textContent = '\ud83d\udd04 Synchroniser'; btn.disabled = false; }
+      if (res.success && res.clients && res.clients.length > 0) {
+        // Mapper les champs du nouveau schéma
+        var newClients = res.clients.map(function(rc) {
+          var ex = clientsData.find(function(c){ return c.nom === rc.nom; });
+          return {
+            nom:                rc.nom || '',
+            commercial:         rc.commercial || CONFIG.commercial,
+            ca_2026:            rc.ca_2026 || 0,
+            ca_2025_cumul:      rc.ca_2025_cumul || 0,
+            ca_2025:            rc.ca_2025_cumul || 0,
+            evolution:          rc.evolution || '',
+            reservoir:          rc.reservoir || 0,
+            objectif:           rc.objectif || 0,
+            pct_obj:            rc.pct_obj || 0,
+            visites_theoriques: rc.visites_theoriques || 0,
+            visites_total:      rc.visites_total || 0,
+            visites_prospect:   0,
+            visites_bilan:      rc.visites_bilan || 0,
+            visites_perform:    rc.visites_perform || 0,
+            visites_technik:    rc.visites_technik || 0,
+            visites_energy:     rc.visites_energy || 0,
+            visites_site:       rc.visites_site || 0,
+            visites_saisies:    ex ? (ex.visites_saisies || {}) : {},
+          };
+        });
+        clientsData = newClients;
+        renderClientsKPI();
+        renderClients(document.getElementById('clients-search') ? document.getElementById('clients-search').value : '');
+        if (si && res.clients[0] && res.clients[0].sync_date) {
+          si.textContent = 'Donn\u00e9es du ' + res.clients[0].sync_date.split('-').reverse().join('/');
+        }
+      } else {
+        if (si) si.textContent = 'Aucune donn\u00e9e — demandez \u00e0 Maxence d\'importer le tableau';
+      }
+    })
+    .catch(function() {
+      if (btn) { btn.textContent = '\ud83d\udd04 Synchroniser'; btn.disabled = false; }
+      if (si) si.textContent = 'Connexion impossible';
+    });
+}
 function saveCRProspect() {
   if (!selectedId) return;
   var type = document.getElementById('cr-prospect-type').value;

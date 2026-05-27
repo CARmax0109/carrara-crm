@@ -1190,10 +1190,16 @@ function importTableauSuivi(input) {
       var sectors = [];
       row1.forEach(function(v, i) {
         if (!v) return;
-        var vs = String(v).toUpperCase();
+        // Normaliser pour gérer les accents (MAËVA → MAEVA)
+        var vs = String(v).toUpperCase()
+          .replace(/[\u00c0-\u00c5\u00e0-\u00e5]/g,'A')
+          .replace(/[\u00c8-\u00cb\u00e8-\u00eb]/g,'E')
+          .replace(/[\u00cc-\u00cf\u00ec-\u00ef]/g,'I')
+          .replace(/[\u00d2-\u00d6\u00f2-\u00f6]/g,'O')
+          .replace(/[\u00d9-\u00dc\u00f9-\u00fc]/g,'U');
         if (vs.indexOf('MATHIEU') >= 0) sectors.push({col:i, com:'Mathieu'});
         else if (vs.indexOf('CLAIRE') >= 0) sectors.push({col:i, com:'Claire'});
-        else if (vs.indexOf('MA') >= 0 && (vs.indexOf('\u00cbVA') >= 0 || vs.indexOf('EVA') >= 0)) sectors.push({col:i, com:'Maeva'});
+        else if (vs.indexOf('MAEVA') >= 0 || vs.indexOf('MAËVA') >= 0) sectors.push({col:i, com:'Maeva'});
       });
 
       if (sectors.length === 0) {
@@ -1235,29 +1241,54 @@ function importTableauSuivi(input) {
         totalClients += clients.length;
       });
 
-      // Stocker dans localStorage - accessible par toutes les apps du meme domaine
+      // 1. localStorage pour Safari
       var syncDate = new Date().toISOString().slice(0,10);
       var payload  = {data: allData, date: syncDate, sheet: shName};
-      try {
-        localStorage.setItem('carrara_clients_data', JSON.stringify(payload));
-      } catch(e) {
-        showStatus('\u274c Erreur stockage: ' + e.message, 'danger');
-        if (btnEl) btnEl.style.opacity = '1';
-        return;
-      }
+      try { localStorage.setItem('carrara_clients_data', JSON.stringify(payload)); } catch(e) {}
 
-      if (btnEl) btnEl.style.opacity = '1';
-      if (statusEl) {
-        statusEl.textContent = '\u2705 ' + totalClients + ' clients synchronis\u00e9s depuis ' + shName + ' \u00b7 '
-          + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-        statusEl.style.color = 'var(--green)';
+      // 2. Google Sheet en chunks de 10 clients (apps PWA iOS)
+      var CHUNK_SIZE = 10;
+      var tasks = [];
+      ['Mathieu','Claire','Maeva'].forEach(function(com) {
+        var cls = allData[com] || [];
+        for (var s = 0; s < cls.length; s += CHUNK_SIZE) {
+          tasks.push({com:com, chunk:cls.slice(s, s+CHUNK_SIZE), start:s, total:cls.length});
+        }
+      });
+      var ti = 0, errs = 0;
+
+      function sendChunk() {
+        if (ti >= tasks.length) {
+          if (btnEl) btnEl.style.opacity = '1';
+          if (statusEl) {
+            statusEl.textContent = (errs > 0 ? '\u26a0\ufe0f ' : '\u2705 ') + totalClients
+              + ' clients synchronis\u00e9s depuis ' + shName + ' \u00b7 '
+              + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            statusEl.style.color = errs > 0 ? 'var(--amber)' : 'var(--green)';
+            statusEl.style.fontSize = '13px';
+          }
+          var lbl = document.getElementById('date-today-lbl');
+          if (lbl) {
+            var orig = lbl.textContent;
+            lbl.textContent = '\u2705 ' + totalClients + ' clients mis \u00e0 jour (' + shName + ')';
+            setTimeout(function(){lbl.textContent=orig;}, 5000);
+          }
+          return;
+        }
+        var t = tasks[ti++];
+        if (statusEl) statusEl.textContent = '\u23f3 Envoi ' + t.com
+          + ' (' + Math.min(t.start + CHUNK_SIZE, t.total) + '/' + t.total + ')\u2026';
+        var url = SCRIPT_URL + '?action=uploadClientsData'
+          + '&date=' + encodeURIComponent(syncDate)
+          + '&commercial=' + encodeURIComponent(t.com)
+          + '&start=' + t.start + '&total=' + t.total
+          + '&data=' + encodeURIComponent(JSON.stringify(t.chunk));
+        fetch(url, {redirect:'follow'})
+          .then(function(r){return r.text();})
+          .then(function(){sendChunk();})
+          .catch(function(){errs++;sendChunk();});
       }
-      var lbl = document.getElementById('date-today-lbl');
-      if (lbl) {
-        var orig = lbl.textContent;
-        lbl.textContent = '\u2705 ' + totalClients + ' clients mis \u00e0 jour (' + shName + ')';
-        setTimeout(function(){lbl.textContent=orig;}, 5000);
-      }
+      sendChunk();
 
     } catch(err) {
       if (btnEl) btnEl.style.opacity = '1';
