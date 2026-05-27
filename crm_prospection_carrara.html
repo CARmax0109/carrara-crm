@@ -2065,8 +2065,30 @@ function loadAgendaEquipe() {
   mgrApi({action:'getAgenda', commercial:''})
     .then(function(res) {
       if (res.success) {
-        agendaEquipeData = (res.agenda||[]).filter(function(r){
-          return r.id && r.id!=='undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date>'1900-01-01' && r.client;
+        agendaEquipeData = (res.agenda||[]).map(function(r){
+          // Nettoyer et normaliser la date (supporte 2026-05-28 ET 5/28/2026 2:00:00)
+          var d = r.date||'';
+          if (d && !d.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            var parsed = new Date(d);
+            if (!isNaN(parsed) && parsed.getFullYear() > 1900) {
+              d = parsed.getFullYear()+'-'
+                +String(parsed.getMonth()+1).padStart(2,'0')+'-'
+                +String(parsed.getDate()).padStart(2,'0');
+            } else { d = ''; }
+          }
+          return {
+            id:          r.id||'',
+            commercial:  r.commercial||'',
+            date:        d,
+            heure:       (r.heure&&r.heure!=='undefined')?r.heure:'',
+            client:      (r.client&&r.client!=='undefined')?r.client:'',
+            note:        (r.note&&r.note!=='undefined')?r.note:'',
+            type_visite: (r.type_visite&&r.type_visite!=='undefined')?r.type_visite:'',
+          };
+        }).filter(function(r){
+          return r.id && r.id!=='undefined'
+            && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/)
+            && r.date > '1900-01-01' && r.client;
         });
         renderAgendaEquipe();
       } else {
