@@ -1301,7 +1301,7 @@ function importTableauSuivi(input) {
       var syncDate = new Date().toISOString().slice(0,10);
       var payload  = {data: allData, date: syncDate, sheet: shName};
       try {
-        sessionStorage.setItem('carrara_suivi_data', JSON.stringify(payload));
+        localStorage.setItem('carrara_suivi_data', JSON.stringify(payload));
         localStorage.setItem('carrara_clients_data', JSON.stringify(payload));
       } catch(e) {}
 
@@ -1359,25 +1359,39 @@ function importTableauSuivi(input) {
         }
       } catch(e) {}
 
-      // Envoi vers Google Sheet en arrière-plan (non bloquant)
-      var CHUNK_SIZE = 10;
-      var tasks = [];
-      coms2.forEach(function(com) {
+      // Envoi vers Google Sheet via JSONP (contourne CORS)
+      var CHUNK_SIZE = 8;
+      var bgTasks = [];
+      ['Mathieu','Claire','Maeva'].forEach(function(com) {
         var cls = allData[com]||[];
         for (var s=0; s<cls.length; s+=CHUNK_SIZE) {
-          tasks.push({com:com,chunk:cls.slice(s,s+CHUNK_SIZE),start:s});
+          bgTasks.push({com:com, chunk:cls.slice(s,s+CHUNK_SIZE), start:s});
         }
       });
-      var ti2=0;
-      function sendBg() {
-        if (ti2>=tasks.length) return;
-        var t=tasks[ti2++];
-        var url=SCRIPT_URL+'?action=uploadClientsData&date='+encodeURIComponent(syncDate)
-          +'&commercial='+encodeURIComponent(t.com)
-          +'&start='+t.start+'&data='+encodeURIComponent(JSON.stringify(t.chunk));
-        fetch(url,{redirect:'follow'}).then(function(){sendBg();}).catch(function(){sendBg();});
+      var bgIdx = 0;
+      function sendBgJSONP() {
+        if (bgIdx >= bgTasks.length) {
+          if (statusEl) {
+            statusEl.textContent = '\u2705 ' + totalClients + ' clients sync\u00e9s depuis ' + shName
+              + ' \u00b7 ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            statusEl.style.color = 'var(--green)'; statusEl.style.fontSize = '13px';
+          }
+          return;
+        }
+        var t = bgTasks[bgIdx++];
+        if (statusEl) statusEl.textContent = '\u23f3 Envoi ' + t.com
+          + ' (' + Math.min(t.start+CHUNK_SIZE,allData[t.com].length) + '/' + allData[t.com].length + ')\u2026';
+        callScriptJSONP({
+          action:'uploadClientsData',
+          date: syncDate,
+          commercial: t.com,
+          start: t.start,
+          data: JSON.stringify(t.chunk)
+        }, function(res) {
+          sendBgJSONP();
+        });
       }
-      sendBg();
+      sendBgJSONP();
 
     } catch(err) {
       if (btnEl) btnEl.style.opacity = '1';
@@ -1699,6 +1713,27 @@ function launchApp(){
 }
 
 // ── INIT ────────────────────────────────────────────────────
+
+// ── JSONP - contourne CORS pour Google Apps Script ───────────
+function callScriptJSONP(params, callback) {
+  var cbName = 'gs_cb_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    document.head.removeChild(script);
+    callback(data);
+  };
+  params.callback = cbName;
+  var qs = Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+  }).join('&');
+  var script = document.createElement('script');
+  script.src = SCRIPT_URL + '?' + qs;
+  script.onerror = function() {
+    delete window[cbName];
+    callback({success:false, error:'Connexion impossible'});
+  };
+  document.head.appendChild(script);
+}
 document.addEventListener('DOMContentLoaded', function(){
   // Brancher le pavé numérique sans double déclenchement iOS
   document.querySelectorAll('#pin-grid .pin-key[data-digit]').forEach(function(btn){
