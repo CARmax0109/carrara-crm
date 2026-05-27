@@ -1066,9 +1066,10 @@ var historiqueCache = [];
 function loadHistoriqueManager() {
   // Charger aussi les comptes rendus si besoin
   if (!crData || crData.length === 0) {
-    callScriptJSONP({action:'getVisites', commercial:''}, function(res){
-    if(res.success){crData=(res.visites||[]).filter(function(v){return v.note&&v.note.trim();});renderHistorique();}
-  });
+    mgrApi({action:'getVisites', commercial:''})
+    .then(function(res){
+      if(res.success){crData=(res.visites||[]).filter(function(v){return v.note&&v.note.trim();});renderHistorique();}
+    }).catch(function(){});
   }
   var loading = document.getElementById('hist-loading');
   var content = document.getElementById('hist-content');
@@ -1763,6 +1764,22 @@ function launchApp(){
 
 // ── INIT ────────────────────────────────────────────────────
 
+
+// ── API MANAGER (fetch simple - pas de PWA iOS) ───────────────
+function mgrApi(params) {
+  var qs = Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+  }).join('&');
+  return fetch(SCRIPT_URL + '?' + qs, {redirect:'follow'})
+    .then(function(r){ return r.text(); })
+    .then(function(txt){
+      // Nettoyer réponse JSONP si nécessaire
+      var clean = txt.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+      try { return JSON.parse(clean); }
+      catch(e) { return JSON.parse(txt); }
+    });
+}
+
 // ── JSONP - contourne CORS pour Google Apps Script ───────────
 function callScriptJSONP(params, callback) {
   var cbName = 'gs_cb_' + Date.now();
@@ -1820,15 +1837,17 @@ function loadCR() {
   var el = document.getElementById('cr-list');
   if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px"><div style="width:24px;height:24px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Chargement\u2026</div>';
   
-  callScriptJSONP({action:'getVisites', commercial:''}, function(res) {
-    if (res.success) {
-      crData = (res.visites||[]).filter(function(v){ return v.note&&v.note.trim(); });
-      crData.sort(function(a,b){ return b.date.localeCompare(a.date); });
-      renderCR();
-    } else {
-      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);font-size:13px">\u274c Erreur</div>';
-    }
-  });
+  mgrApi({action:'getVisites', commercial:''})
+    .then(function(res) {
+      if (res.success) {
+        crData = (res.visites||[]).filter(function(v){ return v.note&&v.note.trim(); });
+        crData.sort(function(a,b){ return b.date.localeCompare(a.date); });
+        renderCR();
+      }
+    })
+    .catch(function() {
+      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);font-size:13px">\u274c Connexion impossible</div>';
+    });
 }
 
 function renderCR() {
@@ -1908,21 +1927,25 @@ function loadSuiviClients() {
   var infoEl = document.getElementById('suivi-sync-info');
   if (infoEl) infoEl.textContent = 'Chargement\u2026';
 
-  callScriptJSONP({action:'getClientsData', commercial:''}, function(res) {
-    if (res.success && res.clients && res.clients.length > 0) {
-      suiviData = res.clients;
-      if (infoEl && res.clients[0] && res.clients[0].sync_date) {
-        infoEl.textContent = res.clients.length + ' clients \u00b7 donn\u00e9es du '
-          + res.clients[0].sync_date.split('-').reverse().join('/');
+  mgrApi({action:'getClientsData', commercial:''})
+    .then(function(res) {
+      if (res.success && res.clients && res.clients.length > 0) {
+        suiviData = res.clients;
+        if (infoEl && res.clients[0] && res.clients[0].sync_date) {
+          infoEl.textContent = res.clients.length + ' clients \u00b7 donn\u00e9es du '
+            + res.clients[0].sync_date.split('-').reverse().join('/');
+        }
+        renderSuiviKPIComs();
+        renderSuiviClients();
+      } else {
+        if (infoEl) infoEl.textContent = 'Aucune donn\u00e9e \u2014 importez le tableau de suivi';
+        var tbody = document.getElementById('suivi-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Importez le tableau de suivi</td></tr>';
       }
-      renderSuiviKPIComs();
-      renderSuiviClients();
-    } else {
-      if (infoEl) infoEl.textContent = 'Aucune donn\u00e9e \u2014 importez le tableau de suivi';
-      var tbody = document.getElementById('suivi-tbody');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Importez le tableau de suivi depuis le bouton en haut \u00e0 droite</td></tr>';
-    }
-  });
+    })
+    .catch(function() {
+      if (infoEl) infoEl.textContent = 'Connexion impossible';
+    });
 }
 
 function renderSuiviKPIComs() {
@@ -2039,16 +2062,20 @@ function loadAgendaEquipe() {
   var el = document.getElementById('agenda-equipe-list');
   if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><div style="width:24px;height:24px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Chargement\u2026</div>';
 
-  callScriptJSONP({action:'getAgenda', commercial:''}, function(res) {
-    if (res.success) {
-      agendaEquipeData = (res.agenda||[]).filter(function(r){
-        return r.id && r.id!=='undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date>'1900-01-01' && r.client;
-      });
-      renderAgendaEquipe();
-    } else {
-      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger)">\u274c Connexion impossible</div>';
-    }
-  })
+  mgrApi({action:'getAgenda', commercial:''})
+    .then(function(res) {
+      if (res.success) {
+        agendaEquipeData = (res.agenda||[]).filter(function(r){
+          return r.id && r.id!=='undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date>'1900-01-01' && r.client;
+        });
+        renderAgendaEquipe();
+      } else {
+        if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger)">\u274c '+( res.error||'Erreur')+'</div>';
+      }
+    })
+    .catch(function(err) {
+      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger)">\u274c '+err.message+'</div>';
+    })
 }
 
 function renderAgendaEquipe() {
