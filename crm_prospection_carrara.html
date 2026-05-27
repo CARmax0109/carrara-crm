@@ -305,6 +305,7 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
   <button class="tab-btn" onclick="goTab('form-guide',this)">Guide Form</button>
   <button class="tab-btn" onclick="goTab('comptes-rendus',this)">&#x1F4DD; Comptes rendus</button>
   <button class="tab-btn" onclick="goTab('suivi-clients',this)">&#x1F4CA; Suivi clients</button>
+  <button class="tab-btn" onclick="goTab('agenda-equipe',this)">&#x1F4C5; Agenda équipe</button>
 </div>
 
 <div class="main">
@@ -493,31 +494,58 @@ tbody tr.client-row td{background:rgba(52,211,153,0.04)}
 
 <!-- ═══ HISTORIQUE ═══ -->
 <div id="pane-historique" class="tab-pane">
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
-    <select id="hist-filter-com" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit">
-      <option value="">Tous les commerciaux</option>
-      <option>Claire</option><option>Mathieu</option><option>Maëva</option>
-    </select>
-    <select id="hist-filter-type" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit">
-      <option value="">Tous les types</option>
-      <option value="CREATION">Création</option>
-      <option value="MAJ">Mise à jour</option>
-      <option value="CONVERSION → CLIENT">Conversion client</option>
-      <option value="CONSIGNE">Consigne</option>
-    </select>
-    <button onclick="loadHistoriqueManager()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">🔄 Actualiser</button>
-    <span id="hist-count" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:14px;font-weight:700">Historique des actions</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Prospection + comptes rendus de visite par client</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="hist-filter-com" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les commerciaux</option>
+        <option>Claire</option><option>Mathieu</option><option>Maëva</option>
+      </select>
+      <select id="hist-filter-type" onchange="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les types</option>
+        <option value="CREATION">Création prospect</option>
+        <option value="MAJ">Mise à jour</option>
+        <option value="CONVERSION">Conversion client</option>
+        <option value="CONSIGNE">Consigne</option>
+        <option value="VISITE">Compte rendu visite</option>
+      </select>
+      <input type="text" id="hist-search-client" placeholder="Rechercher un client…" oninput="renderHistorique()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;min-width:160px">
+      <button onclick="loadHistoriqueManager()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">&#x1F504; Actualiser</button>
+    </div>
   </div>
-  <div id="hist-loading" style="text-align:center;padding:40px;color:var(--muted);display:none">
-    <div style="width:28px;height:28px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>
-    Chargement de l'historique…
-  </div>
-  <div class="card" id="hist-content">
-    <div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cliquez sur "Actualiser" pour charger l'historique</div>
-  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:10px" id="hist-count"></div>
+  <div id="hist-loading" style="display:none;text-align:center;padding:20px;color:var(--muted)">Chargement…</div>
+  <div id="hist-content"><div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Cliquez sur "Actualiser" pour charger l'historique</div></div>
 </div>
+<div id="pane-agenda-equipe" class="tab-pane">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:14px;font-weight:700">Agenda équipe</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Tous les rendez-vous planifiés par vos commerciaux</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="agenda-filter-com" onchange="renderAgendaEquipe()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="">Tous les commerciaux</option>
+        <option>Claire</option><option>Mathieu</option><option>Maeva</option>
+      </select>
+      <select id="agenda-filter-period" onchange="renderAgendaEquipe()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none">
+        <option value="upcoming">À venir</option>
+        <option value="all">Tous</option>
+        <option value="past">Passés</option>
+      </select>
+      <button onclick="loadAgendaEquipe()" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">&#x1F504; Actualiser</button>
+    </div>
+  </div>
 
-</div><!-- /main -->
+  <!-- Stats rapides -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px" id="agenda-kpi-row"></div>
+
+  <!-- Liste RDV -->
+  <div id="agenda-equipe-list"><div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Chargement…</div></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <script>
@@ -1036,6 +1064,12 @@ function convertToClient(){
 var historiqueCache = [];
 
 function loadHistoriqueManager() {
+  // Charger aussi les comptes rendus si besoin
+  if (!crData || crData.length === 0) {
+    callScript('getVisites',{commercial:''}).then(function(res){
+      if(res.success){crData=(res.visites||[]).filter(function(v){return v.note&&v.note.trim();});renderHistorique();}
+    }).catch(function(){});
+  }
   var loading = document.getElementById('hist-loading');
   var content = document.getElementById('hist-content');
   if(loading) loading.style.display = 'block';
@@ -1059,37 +1093,58 @@ function loadHistoriqueManager() {
 }
 
 function renderHistorique() {
-  var fc  = document.getElementById('hist-filter-com')  ? document.getElementById('hist-filter-com').value  : '';
-  var ft  = document.getElementById('hist-filter-type') ? document.getElementById('hist-filter-type').value : '';
-  var el  = document.getElementById('hist-content'); if(!el) return;
-  var cnt = document.getElementById('hist-count');
-  var typeIcon  = {'CREATION':'🆕','MAJ':'✏️','CONVERSION → CLIENT':'🏆','CONSIGNE':'📌'};
-  var typeColor = {'CREATION':'var(--blue)','MAJ':'var(--amber)','CONVERSION → CLIENT':'var(--green)','CONSIGNE':'var(--danger)'};
+  var fc = (document.getElementById('hist-filter-com')     ||{}).value||'';
+  var ft = (document.getElementById('hist-filter-type')    ||{}).value||'';
+  var fq = ((document.getElementById('hist-search-client') ||{}).value||'').toLowerCase();
+  var el = document.getElementById('hist-content'); if(!el)return;
+  var cnt= document.getElementById('hist-count');
 
-  var list = historiqueCache.filter(function(h){
-    return (!fc || h.commercial===fc) && (!ft || h.type===ft);
+  // Fusionner historique prospects + comptes rendus visites
+  var all = [];
+  (historiqueCache||[]).forEach(function(h){
+    var p   = (prospects||[]).find(function(x){return x.id===h.id_prospect;});
+    var nom = p?p.entreprise:(h.note||h.id_prospect||'');
+    all.push({dt:h.datetime||'', com:h.commercial||'', client:nom, type:h.type||'', note:h.note||'', src:'prospect'});
   });
-  if(cnt) cnt.textContent = list.length+' action'+(list.length>1?'s':'');
-  if(!list.length){
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Aucune action trouvée</div>';
-    return;
-  }
-  el.innerHTML='<div class="table-wrap"><table>'
-    +'<thead><tr><th>Date &amp; heure</th><th>Commercial</th><th>Prospect</th><th>Type</th><th>Détail</th></tr></thead><tbody>'
-    +list.map(function(h){
-      var ic  = typeIcon[h.type]  || '•';
-      var col = typeColor[h.type] || 'var(--muted)';
-      var p   = prospects.find(function(x){ return x.id===h.id_prospect; });
-      var ent = p ? p.entreprise : h.id_prospect;
-      return '<tr>'
-        +'<td style="color:var(--muted);font-size:11px;white-space:nowrap">'+h.datetime+'</td>'
-        +'<td><span class="com-tag '+comClass(h.commercial)+'">'+h.commercial+'</span></td>'
-        +'<td style="font-weight:600;font-size:12px">'+ent+'</td>'
-        +'<td><span style="font-size:11px;font-weight:700;color:'+col+'">'+ic+' '+h.type+'</span></td>'
-        +'<td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+h.note+'</td>'
-        +'</tr>';
-    }).join('')
-    +'</tbody></table></div>';
+  (crData||[]).forEach(function(v){
+    if(!v.note||!v.note.trim())return;
+    all.push({dt:v.date||'', com:v.commercial||'', client:v.client||'', type:'VISITE • '+(v.type_visite||''), note:v.note||'', src:'visite'});
+  });
+  all.sort(function(a,b){return b.dt.localeCompare(a.dt);});
+
+  var list=all.filter(function(h){
+    if(fc&&h.com!==fc)return false;
+    if(fq&&h.client.toLowerCase().indexOf(fq)<0)return false;
+    if(ft==='VISITE')return h.src==='visite';
+    if(ft==='CONVERSION')return h.type.indexOf('CONVERSION')>=0;
+    if(ft&&h.src==='visite')return false;
+    if(ft&&h.type!==ft)return false;
+    return true;
+  });
+
+  if(cnt)cnt.textContent=list.length+' action'+(list.length>1?'s':'');
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Aucune action trouvée</div>';return;}
+
+  var COM_COLS={Claire:'#C8000F',Mathieu:'#4f8ef7',Maeva:'#a78bfa'};
+  var TYPE_COL={'CREATION':'var(--blue)','MAJ':'var(--amber)','CONVERSION → CLIENT':'var(--green)','CONSIGNE':'var(--red)'};
+
+  el.innerHTML=list.map(function(h){
+    var isV   =h.src==='visite';
+    var comC  =COM_COLS[h.com]||'#8892a4';
+    var typeC =isV?'#34d399':(TYPE_COL[h.type]||'var(--muted)');
+    var icon  =isV?'✏️':(h.type==='CREATION'?'??':h.type==='CONSIGNE'?'??':'•');
+    var dateS =h.dt?h.dt.slice(0,10).split('-').reverse().join('/'):'';
+    var timeS =h.dt&&h.dt.length>10?h.dt.slice(11,16):'';
+    return '<div style="border-left:3px solid '+typeC+';padding:10px 14px;margin-bottom:8px;background:var(--bg2);border-radius:0 10px 10px 0">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:'+(h.note?'6':'0')+'px">'
+        +'<span style="font-size:13px;font-weight:700">'+h.client+'</span>'
+        +'<span style="padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;background:rgba('+hexToRgbMgr(comC)+',0.15);color:'+comC+'">'+h.com+'</span>'
+        +'<span style="font-size:10px;font-weight:700;color:'+typeC+'">'+icon+' '+h.type+'</span>'
+        +'<span style="font-size:10px;color:var(--muted);margin-left:auto">'+dateS+(timeS?'  · '+timeS:'')+'</span>'
+      +'</div>'
+      +(h.note?'<div style="font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-wrap">'+escHtml(h.note)+'</div>':'')
+    +'</div>';
+  }).join('');
 }
 
 function loadHistoriqueProspect(prospectId) {
@@ -1980,6 +2035,102 @@ function renderSuiviClients() {
 function parseEvol(e) {
   if (!e || e === '--') return null;
   return parseFloat(e.replace('%','').replace(',','.').trim());
+}
+
+
+// ── AGENDA ÉQUIPE ────────────────────────────────────────────
+var agendaEquipeData = [];
+
+function loadAgendaEquipe() {
+  var el = document.getElementById('agenda-equipe-list');
+  if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)"><div style="width:24px;height:24px;border:2px solid rgba(200,0,15,0.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Chargement\u2026</div>';
+
+  callScript('getAgenda', {commercial:''})
+    .then(function(res) {
+      if (res.success) {
+        // Filtrer les RDV valides
+        agendaEquipeData = (res.agenda||[]).filter(function(r){
+          return r.id && r.id !== 'undefined' && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/) && r.date > '1900-01-01' && r.client;
+        });
+        renderAgendaEquipe();
+      }
+    })
+    .catch(function() {
+      if (el) el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger)">\u274c Connexion impossible</div>';
+    });
+}
+
+function renderAgendaEquipe() {
+  var fc     = (document.getElementById('agenda-filter-com')    ||{}).value || '';
+  var period = (document.getElementById('agenda-filter-period') ||{}).value || 'upcoming';
+  var today  = new Date().toISOString().slice(0,10);
+
+  var list = agendaEquipeData.filter(function(r) {
+    if (fc && r.commercial !== fc) return false;
+    if (period === 'upcoming') return r.date >= today;
+    if (period === 'past')     return r.date <  today;
+    return true;
+  }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+  // KPIs
+  var kpiEl = document.getElementById('agenda-kpi-row');
+  if (kpiEl) {
+    var upcoming = agendaEquipeData.filter(function(r){ return r.date >= today; });
+    var today_rdv = agendaEquipeData.filter(function(r){ return r.date === today; });
+    var COM_COLS  = {Claire:'#C8000F', Mathieu:'#4f8ef7', Maeva:'#a78bfa'};
+    kpiEl.innerHTML = [
+      {color:'red',   lbl:'RDV \u00e0 venir',   val:upcoming.length,   sub:today_rdv.length+' aujourd\u2019hui'},
+      {color:'blue',  lbl:'RDV Claire',          val:upcoming.filter(function(r){return r.commercial==='Claire';}).length,  sub:'planifi\u00e9s'},
+      {color:'amber', lbl:'RDV Mathieu + Ma\u00ebva', val:upcoming.filter(function(r){return r.commercial!=='Claire';}).length, sub:'planifi\u00e9s'},
+    ].map(function(k){
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-top:2px solid '
+        +({red:'var(--red)',blue:'var(--blue)',amber:'var(--amber)'}[k.color])
+        +';border-radius:12px;padding:12px 14px">'
+        +'<div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px">'+k.lbl+'</div>'
+        +'<div style="font-size:22px;font-weight:800">'+k.val+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px">'+k.sub+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  var el = document.getElementById('agenda-equipe-list'); if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">Aucun rendez-vous'+(agendaEquipeData.length?' pour ces filtres':' enregistr\u00e9')+'</div>';
+    return;
+  }
+
+  var COM_COLS  = {Claire:'#C8000F', Mathieu:'#4f8ef7', Maeva:'#a78bfa'};
+  var TYPE_COLS = {Prospect:'#4f8ef7',Bilan:'#f59e0b',Perform:'#34d399',Technik:'#a78bfa',Energy:'#22d3ee','Site RR':'#f87171',Autre:'#6b7280'};
+  var months    = ['Jan','F\u00e9v','Mar','Avr','Mai','Jun','Jul','Ao\u00fb','Sep','Oct','Nov','D\u00e9c'];
+  var todayStr  = new Date().toISOString().slice(0,10);
+
+  el.innerHTML = list.map(function(r) {
+    var d      = r.date.split('-');
+    var isToday= r.date === todayStr;
+    var isPast = r.date < todayStr;
+    var comCol  = COM_COLS[r.commercial]  || '#8892a4';
+    var typeCol = TYPE_COLS[r.type_visite] || '#8892a4';
+
+    return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid '
+      +(isToday?'rgba(79,142,247,0.4)':'var(--border)')
+      +';border-radius:12px;margin-bottom:8px;opacity:'+(isPast?'0.55':'1')+'">'
+      // Bloc date
+      +'<div style="display:flex;flex-direction:column;align-items:center;background:'+(isToday?'var(--blue)':'var(--bg3)')+';border-radius:8px;padding:6px 10px;min-width:52px;flex-shrink:0">'
+        +'<div style="font-size:20px;font-weight:800;line-height:1;color:'+(isToday?'#fff':'var(--text)')+'">'+d[2]+'</div>'
+        +'<div style="font-size:9px;font-weight:600;text-transform:uppercase;color:'+(isToday?'rgba(255,255,255,0.8)':'var(--muted)')+';margin-top:2px">'+months[parseInt(d[1])-1]+'</div>'
+      +'</div>'
+      // Contenu
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:5px">'+r.client+'</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
+          +'<span style="padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;background:rgba('+hexToRgbMgr(comCol)+',0.15);color:'+comCol+'">'+r.commercial+'</span>'
+          +(r.type_visite?'<span style="padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;background:rgba('+hexToRgbMgr(typeCol)+',0.15);color:'+typeCol+'">'+r.type_visite+'</span>':'')
+          +(r.heure?'<span style="font-size:10px;color:var(--blue);font-weight:600">\ud83d\udd50 '+r.heure+'</span>':'')
+        +'</div>'
+        +(r.note?'<div style="font-size:11px;color:var(--muted);line-height:1.4">'+r.note+'</div>':'')
+      +'</div>'
+    +'</div>';
+  }).join('');
 }
 
 </script>
