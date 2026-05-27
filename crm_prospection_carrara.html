@@ -1297,54 +1297,82 @@ function importTableauSuivi(input) {
         totalClients += clients.length;
       });
 
-      // 1. localStorage pour Safari
+      // Stocker dans sessionStorage pour affichage immédiat dans le manager
       var syncDate = new Date().toISOString().slice(0,10);
       var payload  = {data: allData, date: syncDate, sheet: shName};
-      try { localStorage.setItem('carrara_clients_data', JSON.stringify(payload)); } catch(e) {}
+      try {
+        sessionStorage.setItem('carrara_suivi_data', JSON.stringify(payload));
+        localStorage.setItem('carrara_clients_data', JSON.stringify(payload));
+      } catch(e) {}
 
-      // 2. Google Sheet en chunks de 10 clients (apps PWA iOS)
+      // Mettre à jour l'affichage suivi immédiatement
+      suiviData = [];
+      var coms2 = ['Mathieu','Claire','Maeva'];
+      coms2.forEach(function(com) {
+        (allData[com]||[]).forEach(function(c) {
+          suiviData.push({
+            nom:                c.nom||'',
+            commercial:         com,
+            ca_2026:            c.ca_2026||0,
+            ca_2025_cumul:      c.ca_2025_cumul||0,
+            evolution:          c.evolution||'',
+            reservoir:          c.reservoir||0,
+            objectif:           c.objectif||0,
+            pct_obj:            c.pct_obj||0,
+            visites_theoriques: c.visites_theoriques||0,
+            visites_total:      c.visites_total||0,
+            visites_bilan:      c.visites_bilan||0,
+            visites_perform:    c.visites_perform||0,
+            visites_technik:    c.visites_technik||0,
+            visites_energy:     c.visites_energy||0,
+            visites_site:       c.visites_site||0,
+            sync_date:          syncDate,
+          });
+        });
+      });
+
+      if (btnEl) btnEl.style.opacity = '1';
+      if (statusEl) {
+        statusEl.textContent = '\u2705 ' + totalClients + ' clients synchronis\u00e9s depuis ' + shName + ' \u00b7 '
+          + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        statusEl.style.color = 'var(--green)'; statusEl.style.fontSize = '13px';
+      }
+      var lbl = document.getElementById('date-today-lbl');
+      if (lbl) {
+        var orig = lbl.textContent;
+        lbl.textContent = '\u2705 ' + totalClients + ' clients mis \u00e0 jour (' + shName + ')';
+        setTimeout(function(){lbl.textContent=orig;}, 5000);
+      }
+
+      // Mettre à jour l'info de sync dans l'onglet suivi
+      var si2 = document.getElementById('suivi-sync-info');
+      if (si2) si2.textContent = totalClients + ' clients \u00b7 donn\u00e9es du ' + syncDate.split('-').reverse().join('/');
+
+      // Rafraichir l'onglet suivi si ouvert
+      if (document.getElementById('pane-suivi-clients').classList.contains('active')) {
+        renderSuiviKPIComs();
+        renderSuiviClients();
+      }
+
+      // Envoi vers Google Sheet en arrière-plan (non bloquant)
       var CHUNK_SIZE = 10;
       var tasks = [];
-      ['Mathieu','Claire','Maeva'].forEach(function(com) {
-        var cls = allData[com] || [];
-        for (var s = 0; s < cls.length; s += CHUNK_SIZE) {
-          tasks.push({com:com, chunk:cls.slice(s, s+CHUNK_SIZE), start:s, total:cls.length});
+      coms2.forEach(function(com) {
+        var cls = allData[com]||[];
+        for (var s=0; s<cls.length; s+=CHUNK_SIZE) {
+          tasks.push({com:com,chunk:cls.slice(s,s+CHUNK_SIZE),start:s});
         }
       });
-      var ti = 0, errs = 0;
-
-      function sendChunk() {
-        if (ti >= tasks.length) {
-          if (btnEl) btnEl.style.opacity = '1';
-          if (statusEl) {
-            statusEl.textContent = (errs > 0 ? '\u26a0\ufe0f ' : '\u2705 ') + totalClients
-              + ' clients synchronis\u00e9s depuis ' + shName + ' \u00b7 '
-              + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-            statusEl.style.color = errs > 0 ? 'var(--amber)' : 'var(--green)';
-            statusEl.style.fontSize = '13px';
-          }
-          var lbl = document.getElementById('date-today-lbl');
-          if (lbl) {
-            var orig = lbl.textContent;
-            lbl.textContent = '\u2705 ' + totalClients + ' clients mis \u00e0 jour (' + shName + ')';
-            setTimeout(function(){lbl.textContent=orig;}, 5000);
-          }
-          return;
-        }
-        var t = tasks[ti++];
-        if (statusEl) statusEl.textContent = '\u23f3 Envoi ' + t.com
-          + ' (' + Math.min(t.start + CHUNK_SIZE, t.total) + '/' + t.total + ')\u2026';
-        var url = SCRIPT_URL + '?action=uploadClientsData'
-          + '&date=' + encodeURIComponent(syncDate)
-          + '&commercial=' + encodeURIComponent(t.com)
-          + '&start=' + t.start + '&total=' + t.total
-          + '&data=' + encodeURIComponent(JSON.stringify(t.chunk));
-        fetch(url, {redirect:'follow'})
-          .then(function(r){return r.text();})
-          .then(function(){sendChunk();})
-          .catch(function(){errs++;sendChunk();});
+      var ti2=0;
+      function sendBg() {
+        if (ti2>=tasks.length) return;
+        var t=tasks[ti2++];
+        var url=SCRIPT_URL+'?action=uploadClientsData&date='+encodeURIComponent(syncDate)
+          +'&commercial='+encodeURIComponent(t.com)
+          +'&start='+t.start+'&data='+encodeURIComponent(JSON.stringify(t.chunk));
+        fetch(url,{redirect:'follow'}).then(function(){sendBg();}).catch(function(){sendBg();});
       }
-      sendChunk();
+      sendBg();
 
     } catch(err) {
       if (btnEl) btnEl.style.opacity = '1';
