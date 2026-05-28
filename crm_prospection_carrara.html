@@ -1409,7 +1409,7 @@ function importTableauSuivi(input) {
       try { renderSuiviKPIComs(); } catch(e) {}
       try { renderSuiviClients(); } catch(e) {}
 
-      // Envoi vers Google Sheet via JSONP (contourne CORS)
+      // Envoi vers Google Sheet via fetch() séquentiel (PC Chrome)
       var CHUNK_SIZE = 8;
       var bgTasks = [];
       ['Mathieu','Claire','Maeva'].forEach(function(com) {
@@ -1419,29 +1419,40 @@ function importTableauSuivi(input) {
         }
       });
       var bgIdx = 0;
-      function sendBgJSONP() {
+      var bgErrors = 0;
+
+      function sendBgChunk() {
         if (bgIdx >= bgTasks.length) {
           if (statusEl) {
-            statusEl.textContent = '\u2705 ' + totalClients + ' clients sync\u00e9s depuis ' + shName
+            statusEl.textContent = (bgErrors > 0 ? '\u26a0\ufe0f ' : '\u2705 ')
+              + totalClients + ' clients sync\u00e9s depuis ' + shName
               + ' \u00b7 ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-            statusEl.style.color = 'var(--green)'; statusEl.style.fontSize = '13px';
+            statusEl.style.color = bgErrors > 0 ? 'var(--amber)' : 'var(--green)';
+            statusEl.style.fontSize = '13px';
           }
           return;
         }
         var t = bgTasks[bgIdx++];
         if (statusEl) statusEl.textContent = '\u23f3 Envoi ' + t.com
           + ' (' + Math.min(t.start+CHUNK_SIZE,allData[t.com].length) + '/' + allData[t.com].length + ')\u2026';
-        callScriptJSONP({
-          action:'uploadClientsData',
+
+        mgrApi({
+          action: 'uploadClientsData',
           date: syncDate,
           commercial: t.com,
           start: t.start,
           data: JSON.stringify(t.chunk)
-        }, function(res) {
-          sendBgJSONP();
+        })
+        .then(function(res) {
+          if (!res.success) bgErrors++;
+          sendBgChunk();
+        })
+        .catch(function() {
+          bgErrors++;
+          sendBgChunk();
         });
       }
-      sendBgJSONP();
+      sendBgChunk();
 
     } catch(err) {
       if (btnEl) btnEl.style.opacity = '1';
